@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 __version__ = "0.9"
@@ -69,7 +68,7 @@ cdef str __buildhistory():
     return None
 
 
-cdef str __destroy_license(str strlic):
+cdef str __destroy_license(str strlic, str licpath='LICENSE'):
     cdef int l = _random.randint(0, len(strlic) - 2)
     cdef list b = range(48, 58)
     b.extend(range(65, 91))
@@ -81,7 +80,7 @@ cdef str __destroy_license(str strlic):
     cdef list llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
     llic.extend([slic[i: i + 27] for i in range(0, l, 27)])
     llic.append("–" * 8 + "END LICENSE" + "–" * 8)
-    with open('LICENSE', 'w') as f:
+    with open(licpath, 'w') as f:
         f.writelines([c + "\n" for c in llic])
     return None
 
@@ -141,10 +140,10 @@ cdef str __generate_license(int deadline_year, int max_client=2000):
     return 'License generation success.'
 
 
-cdef str __load_license():
+cdef str __load_license(str licpath='LICENSE'):
     cdef list lic = []
     try:
-        with open('LICENSE', "rU") as f:
+        with open(licpath, "rU") as f:
             lic = f.readlines()
     except:
         return "err:License file not found."
@@ -166,7 +165,7 @@ cdef str __load_license():
         mlic = _json.loads(ss)
         mlic["timediff"] = mlic["deadline"] - int(_time.time())
         if mlic["timediff"] < 0:
-            __destroy_license(s)
+            __destroy_license(s, licpath)
             return "err:Current license has expired！"
     except:
         return "err:License file load error."
@@ -179,5 +178,5 @@ def generate_license(int deadline_year, int max_client=2000):
     return __generate_license(deadline_year, max_client)
 
 
-def load_license():
-    return __load_license()
+def load_license(str licpath='LICENSE'):
+    return __load_license(licpath)

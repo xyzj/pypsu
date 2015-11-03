@@ -4,23 +4,28 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
+import os
 
 extensions = [
     Extension("mxpsu", ["mxpsu.pyx"],
         include_dirs = [],
         libraries = [],
         library_dirs = []),
-    Extension("mxlic", ["mxlic.pyx"],
+    # Extension("mxpsu_nt", ["mxess_nt.pyx"],
+    #     include_dirs = [],
+    #     libraries = [],
+    #     library_dirs = []),
+    Extension("mxhpss_nt", ["mxhpss_nt.pyx"],
         include_dirs = [],
         libraries = [],
         library_dirs = []),
-    Extension("mxhpss", ["mxhpss.pyx"],
-        include_dirs = [],
-        libraries = [],
-        library_dirs = []),
+    # # Extension("_nt", ["tcsnt.pyx"],
+    #     include_dirs = [],
+    #     libraries = [],
+    #     library_dirs = []),
 ]
 
 setup(
-  name = 'mxpsu',
+  name = 'mxpsu_nt',
   ext_modules = cythonize(extensions),
 )

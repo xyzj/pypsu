@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 __version__ = "0.9"
@@ -22,12 +21,10 @@ import platform as _platform
 import socket as _socket
 import struct as _struct
 import os as _os
-import tty as _tty
-import termios as _termios
 import uuid as _uuid
 import logging
 import logging.handlers
-import Image as _Image
+# import Image as _Image
 import sys as _sys
 reload(_sys)
 _sys.setdefaultencoding(_sys.getfilesystemencoding())
@@ -50,7 +47,7 @@ SCRIPT_NAME = _sys.argv[0].rpartition('\\')[2]
 KEEP_ALIVE = '3a-53-3b-a0'  # 1983-08-19 03:12:00~2014-08-21 18:00:00
 
 
-cdef __destroy_license(str strlic):
+cdef __destroy_license(str strlic, str licpath='LICENSE'):
     cdef int l = _random.randint(0, len(strlic) - 2)
     cdef list b = range(48, 58)
     b.extend(range(65, 91))
@@ -62,7 +59,7 @@ cdef __destroy_license(str strlic):
     cdef list llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
     llic.extend([slic[i: i + 27] for i in range(0, l, 27)])
     llic.append("–" * 8 + "END LICENSE" + "–" * 8)
-    with open('LICENSE', 'w') as f:
+    with open(licpath, 'w') as f:
         f.writelines([c + "\n" for c in llic])
 
 
@@ -77,10 +74,10 @@ cdef str __decrypt_string(str strCText, str strKey=""):
     return plaintext
 
 
-cdef str __load_license():
+cdef str __load_license(str licpath='LICENSE'):
     cdef list lic = []
     try:
-        with open('LICENSE', 'rU') as f:
+        with open(licpath, 'rU') as f:
             lic = f.readlines()
     except:
         return "err:License file not found."
@@ -102,7 +99,7 @@ cdef str __load_license():
         mlic = _json.loads(ss)
         mlic["timediff"] = mlic["deadline"] - int(_time.time())
         if mlic["timediff"] < 0:
-            __destroy_license(s)
+            __destroy_license(s, licpath)
             return "err:Current license has expired！"
     except:
         return "err:License file load error."
@@ -110,8 +107,8 @@ cdef str __load_license():
     return str(mlic["timediff"])
 
 
-cpdef str load_license():
-    return __load_license()
+cpdef str load_license(str licpath='LICENSE'):
+    return __load_license(licpath)
 
 
 cdef double __max(double a, double b):
@@ -652,34 +649,34 @@ cdef class PriorityQueue:
         return self.queu
 
 
-cdef int HEIGHT = 32
-# chars = "   ...',;:jlrixtO0KXNWMMM"
-cdef str chars = "   .........rixtO0KXNWMMM"
+# cdef int HEIGHT = 32
+# # chars = "   ...',;:jlrixtO0KXNWMMM"
+# cdef str chars = "   .........rixtO0KXNWMMM"
 
-cdef tuple __getsize(object image):
-    '''Calculate the target picture size
-    '''
-    cdef int s_width = image.size[0]
-    cdef int s_height = image.size[1]
-    cdef int t_height = HEIGHT
-    cdef int t_width = (t_height * s_width) / s_height
-    t_width = int(t_width * 2.3)
-    # cdef tuple t_size = (t_width, t_height)
-    return (t_width, t_height)
+# cdef tuple __getsize(object image):
+#     '''Calculate the target picture size
+#     '''
+#     cdef int s_width = image.size[0]
+#     cdef int s_height = image.size[1]
+#     cdef int t_height = HEIGHT
+#     cdef int t_width = (t_height * s_width) / s_height
+#     t_width = int(t_width * 2.3)
+#     # cdef tuple t_size = (t_width, t_height)
+#     return (t_width, t_height)
 
 
-cpdef str pic2ascii(str filename):
-    cdef str output = ''
-    image = _Image.open(filename)
-    cdef tuple size = __getsize(image)
-    image = image.resize(size)
-    image = image.convert('L')
-    pixs = image.load()
-    for y in range(size[1]):
-        for x in range(size[0]):
-            output += chars[pixs[x, y] / 10 - 1]
-        output += '\n'
-    return output
+# cpdef str pic2ascii(str filename):
+#     cdef str output = ''
+#     image = _Image.open(filename)
+#     cdef tuple size = __getsize(image)
+#     image = image.resize(size)
+#     image = image.convert('L')
+#     pixs = image.load()
+#     for y in range(size[1]):
+#         for x in range(size[0]):
+#             output += chars[pixs[x, y] / 10 - 1]
+#         output += '\n'
+#     return output
 
 
 cpdef str get_linux_ip_address(str ifname):
@@ -724,21 +721,21 @@ cpdef str cut_string(str instring, int width, str splitchar="-", int aslist=0):
         return splitchar.join(a)
 
 
-cpdef str check_platform():
-    """Summary
+# cpdef str check_platform():
+#     """Summary
 
-    Returns:
-        TYPE: Description
-    """
-    cdef str p = _platform.platform().lower()
-    if "linux" in p:
-        return "linux"
-    elif "windows-2008server" in p:
-        return "svr08"
-    elif "windows-xp" in p:
-        return "winxp"
-    else:
-        return "win7"
+#     Returns:
+#         TYPE: Description
+#     """
+#     cdef str p = _platform.platform().lower()
+#     if "linux" in p:
+#         return "linux"
+#     elif "windows-2008server" in p:
+#         return "svr08"
+#     elif "windows-xp" in p:
+#         return "winxp"
+#     else:
+#         return "win7"
 
 
 cpdef check_folder(str folders='log,conf', int uplevel=0):
@@ -874,7 +871,7 @@ cpdef str convert_protobuf(object pb2msg):
     return a
 
 
-cpdef str hex_string(list argv):
+cpdef str hex_string(str argv):
     """Summary
 
     Args:
@@ -883,7 +880,7 @@ cpdef str hex_string(list argv):
     Returns:
         TYPE: Description
     """
-    cdef list a = hex_list(argv)
+    cdef list a = hex_list(list(argv))
     cdef list b = [hex(s).replace('0x', '') for s in a]
     return '-'.join(b)
 
@@ -1086,6 +1083,37 @@ cpdef int time_difference(str t1, str t2):
         return int(_time.mktime(x2) - _time.mktime(x1))
 
 
+cpdef str check_platform():
+    p = _platform.platform().lower()
+    if "linux" in p:
+        return "linux"
+    elif "windows-2008server" in p:
+        return "svr08"
+    elif "windows-xp" in p:
+        return "winxp"
+    else:
+        return "win7"
+
+
+cpdef str set_windows_style():
+    s = check_platform()
+    if s == "win7":
+        return "windowsvista"
+    elif s == "winxp":
+        return "windowsxp"
+    else:
+        return "cleanlooks"
+
+
+cpdef int check_win_process(str name):
+    p = _os.popen('tasklist /FI "imagename eq {0}" /FO "csv" /NH'.format(name))
+    s = p.read()
+    if s.count(name) > 0:
+        return 1
+    else:
+        return 0
+
+
 cpdef tuple ip_decompose(list xips):
     """Summary
 
@@ -1142,6 +1170,8 @@ cdef class GetchUnix:
         pass
 
     def __call__(self):
+        import tty as _tty
+        import termios as _termios
         fd = _sys.stdin.fileno()
         old_settings = _termios.tcgetattr(fd)
         try:
