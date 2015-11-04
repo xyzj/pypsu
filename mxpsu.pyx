@@ -256,6 +256,11 @@ cpdef double get_distance(a, b):
     return c
 
 
+cpdef str format_log(str log_txt, str dateformat='%Y-%m-%d %H:%M:%S'):
+    cdef str a = str(u"{0} {1}".format(_time.strftime(dateformat, _time.localtime()), log_txt))
+    return a
+
+
 cpdef str show_our_history():
     cdef str oh = ''
     if _os.path.isfile("OURHISTORY"):
@@ -273,14 +278,14 @@ cpdef str show_our_history():
 
 
 cdef class AdvLogger:
-    cdef str file_name_prefix, file_level, datefmt, logdir
+    cdef str file_name_prefix, file_level, datefmt, log_dir
     cdef int console_level, backupcount
     cdef object logger
     def __init__(self, str file_name_prefix, int console_level=30, str file_level='20', str datefmt='%H:%M:%S', str logdir='', int backupcount=90):
         if logdir == "":
-            self.logdir = _os.path.join(SCRIPT_DIR, "log")
+            self.log_dir = _os.path.join(SCRIPT_DIR, "log")
         else:
-            self.logdir = logdir
+            self.log_dir = logdir
         self._mkdirs()
         # self.baseFilename = "{0:s}.log".format(_os.path.join(self.log_dir, file_name_prefix))
 
@@ -311,7 +316,7 @@ cdef class AdvLogger:
             elif level == "40":
                 name = "error"
             filelog = logging.handlers.TimedRotatingFileHandler(
-                "{0:s}.{1:s}.log".format(_os.path.join(self.logdir, file_name_prefix), name),
+                "{0:s}.{1:s}.log".format(_os.path.join(self.log_dir, file_name_prefix), name),
                 when='midnight', interval=1, backupCount=backupcount, encoding='utf-8')
             # self.filelog.suffix = "%Y%m%d.log"
             filelog.setLevel(int(level))
@@ -320,9 +325,9 @@ cdef class AdvLogger:
             del filelog
 
     cdef _mkdirs(self):
-        if not _os.path.exists(self.logdir):
+        if not _os.path.exists(self.log_dir):
             try:
-                _os.makedirs(self.logdir)
+                _os.makedirs(self.log_dir)
             except Exception as e:
                 print(str(e))
 
@@ -374,8 +379,11 @@ cdef class MyLogger:
     cdef str file_name_prefix, datefmt, log_dir, baseFilename
     cdef int filelog_level, consolelog_level, backupcount
     cdef object logger
-    def __init__(self, str file_name_prefix, int filelog_level=20, int consolelog_level=60, str datefmt='%H:%M:%S', int backupcount=90):
-        self.log_dir = _os.path.join(SCRIPT_DIR, "log")
+    def __init__(self, str file_name_prefix, int filelog_level=20, int consolelog_level=60, str datefmt='%H:%M:%S', str logdir='', int backupcount=90):
+        if logdir == "":
+            self.log_dir = _os.path.join(SCRIPT_DIR, "log")
+        else:
+            self.log_dir = logdir
         self._mkdirs()
         self.baseFilename = "{0:s}.log".format(_os.path.join(self.log_dir, file_name_prefix))
 
