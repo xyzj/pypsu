@@ -294,7 +294,7 @@ cdef class AdvLogger:
         # fmt = logging.Formatter(fmt='%(asctime)s [%(levelno)s] %(message)s', datefmt=datefmt)
         self.set_log_level(datefmt, console_level, file_level, file_name_prefix, backupcount)
 
-    cdef set_log_level(self, datefmt, console_level, file_level, file_name_prefix, backupcount):
+    cdef set_log_level(self, str datefmt, int console_level, str file_level, str file_name_prefix, int backupcount):
         for h in self.logger.handlers:
             self.logger.removeHandler(h)
 
@@ -345,7 +345,7 @@ cdef class AdvLogger:
         # self.logger.shutdown()
         self.logger = None
 
-    cpdef savelog(self, s, l=40):
+    cpdef savelog(self, s, int l=40):
         if self.logger is None:
             return
 
@@ -370,7 +370,7 @@ cdef class AdvLogger:
             else:
                 pass
         except Exception as ex:
-            with open("pymxlib.logger.err", 'a') as f:
+            with open("mxpsu.logger.err", 'a') as f:
                 f.write(ex.message + "\r\n")
             print(ex.message)
 
@@ -420,7 +420,7 @@ cdef class MyLogger:
             self.logger.removeHandler(h)
         self.logger = None
 
-    cpdef savelog(self, s, l=40):
+    cpdef savelog(self, s, int l=40):
         if self.logger is None:
             return
 
@@ -529,7 +529,11 @@ cdef class PriorityQueue:
     cpdef int empty(self):
         """Return True if the queue is empty, False otherwise (not reliable!)."""
         self.mutex.acquire()
-        cdef int n = not self._qsize()
+        cdef int n
+        if self._qsize() > 0:
+            n = 0
+        else:
+            n = 1
         self.mutex.release()
         return n
 
@@ -554,7 +558,7 @@ cdef class PriorityQueue:
         self.not_full.acquire()
         try:
             if self.maxsize > 0:
-                if not block:
+                if block == 0:
                     if self._qsize() == self.maxsize:
                         raise 1
                 elif timeout == 0:
@@ -723,7 +727,7 @@ cpdef str cut_string(str instring, int width, str splitchar="-", int aslist=0):
     """
     cdef int l  = len(instring)
     cdef list a = [instring[x:x + width] for x in range(0, l, width)]
-    if aslist:
+    if aslist > 0:
         return a
     else:
         return splitchar.join(a)
@@ -758,7 +762,7 @@ cpdef check_folder(str folders='log,conf', int uplevel=0):
     """
     if len(folders) < 1 or folders is None:
         return
-    if uplevel:
+    if uplevel > 0:
         location = '..'
     else:
         location = '.'
@@ -773,7 +777,7 @@ cpdef check_folder(str folders='log,conf', int uplevel=0):
             pass
 
 
-cpdef int time2stamp(str timestr, int tocsharp=0, str format_type='%Y-%m-%d %H:%M:%S'):
+cpdef double time2stamp(str timestr, int tocsharp=0, str format_type='%Y-%m-%d %H:%M:%S'):
     """Summary
 
     Args:
@@ -784,16 +788,20 @@ cpdef int time2stamp(str timestr, int tocsharp=0, str format_type='%Y-%m-%d %H:%
     Returns:
         TYPE: Description
     """
+    cdef double y = 621356256000000000.0
+    cdef double z = 10000000.0
+
     try:
-        if tocsharp:
-            return int(_time.mktime(_time.strptime(timestr, format_type)) * 10000000 + 621356256000000000)
+        if tocsharp > 0:
+            return _time.mktime(_time.strptime(timestr, format_type)) * z + y
         else:
-            return int(_time.mktime(_time.strptime(timestr, format_type)))
-    except:
+            return _time.mktime(_time.strptime(timestr, format_type))
+    except Exception as ex:
+        print(ex)
         return 0
 
 
-cpdef str stamp2time(int stamp, int fromcsharp=0, str format_type='%Y-%m-%d %H:%M:%S'):
+cpdef str stamp2time(double stamp, int fromcsharp=0, str format_type='%Y-%m-%d %H:%M:%S'):
     """Summary
 
     Args:
@@ -804,8 +812,11 @@ cpdef str stamp2time(int stamp, int fromcsharp=0, str format_type='%Y-%m-%d %H:%
     Returns:
         TYPE: Description
     """
-    if fromcsharp:
-        return _time.strftime(format_type, _time.localtime((stamp - 621356256000000000) / 10000000))
+    cdef double y = 621356256000000000.0
+    cdef double z = 10000000.0
+
+    if fromcsharp > 0:
+        return _time.strftime(format_type, _time.localtime((stamp - y) / z))
     else:
         return _time.strftime(format_type, _time.localtime(stamp))
 
@@ -821,7 +832,7 @@ cpdef int ip2int(str strip, int usehostorder=0):
         TYPE: Description
     """
     try:
-        if usehostorder:
+        if usehostorder > 0:
             return int(_socket.htonl(_struct.unpack("!L", _socket.inet_aton(strip))[0]))
         else:
             return int(_socket.htonl(_struct.unpack("I", _socket.inet_aton(strip))[0]))
@@ -840,7 +851,7 @@ cpdef str ip2string(int intip, int usehostorder=0):
         TYPE: Description
     """
     try:
-        if usehostorder:
+        if usehostorder > 0:
             return _socket.inet_ntoa(_struct.pack('!L', _socket.ntohl(intip)))
         else:
             return _socket.inet_ntoa(_struct.pack('I', _socket.ntohl(intip)))
@@ -1057,7 +1068,7 @@ cpdef str build_mac(int head=0):
     cdef str machex
     if head == 0:  # jue
         machex = "4a:75:65:"
-    elif head == 1:  # kvm
+    elif head > 0:  # kvm
         machex = "52:54:00:"
     else:  # 本地网卡厂家
         machex = get_mac()[:9]
