@@ -821,7 +821,7 @@ cpdef str stamp2time(double stamp, int fromcsharp=0, str format_type='%Y-%m-%d %
         return _time.strftime(format_type, _time.localtime(stamp))
 
 
-cpdef int ip2int(str strip, int usehostorder=0):
+cpdef long ip2int(str strip, int usehostorder=0):
     """Summary
 
     Args:
@@ -833,9 +833,9 @@ cpdef int ip2int(str strip, int usehostorder=0):
     """
     try:
         if usehostorder > 0:
-            return int(_socket.htonl(_struct.unpack("!L", _socket.inet_aton(strip))[0]))
+            return long(_socket.htonl(_struct.unpack("!L", _socket.inet_aton(strip))[0]))
         else:
-            return int(_socket.htonl(_struct.unpack("I", _socket.inet_aton(strip))[0]))
+            return long(_socket.htonl(_struct.unpack("I", _socket.inet_aton(strip))[0]))
     except:
         return -1
 
@@ -1081,7 +1081,7 @@ cpdef str build_mac(int head=0):
     return hw
 
 
-cpdef int time_difference(str t1, str t2):
+cpdef long time_difference(str t1, str t2):
     """
     计算时间差，格式%Y-%m-%d %H:%M:%S
     :param t1: 起始时间
@@ -1091,7 +1091,7 @@ cpdef int time_difference(str t1, str t2):
         t1 (TYPE): Description
         t2 (TYPE): Description
     """
-    cdef int x1,x2
+    cdef long x1,x2
     try:
         x1 = _time.strptime(t1, "%Y-%m-%d %H:%M:%S")
         x2 = _time.strptime(t2, "%Y-%m-%d %H:%M:%S")
@@ -1099,7 +1099,7 @@ cpdef int time_difference(str t1, str t2):
         print(ex)
         return 0
     else:
-        return int(_time.mktime(x2) - _time.mktime(x1))
+        return long(_time.mktime(x2) - _time.mktime(x1))
 
 
 cpdef str check_platform():

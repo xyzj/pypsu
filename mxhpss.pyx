@@ -328,7 +328,13 @@ cdef class ClientSession:
 
         self.show_debug("rec:{0}".format(recbuff))
 
-        self.on_session_recv(recbuff)
+        if self.debug:
+            self.on_session_recv(recbuff)
+        else:
+            try:
+                self.on_session_recv(recbuff)
+            except Exception as ex:
+                print(ex)
 
 
 cdef class EPSocketServer:
