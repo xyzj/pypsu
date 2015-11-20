@@ -231,6 +231,18 @@ cdef class ClientSession:
         """
         pass
 
+    cpdef int fuzzy_query_property(self, str identity):
+        """
+        模糊查询客户端是否包含相关属性
+
+        Args:
+            identity (TYPE): 自定义_socket属性
+        """
+        for pro in self.property:
+            if pro.find(identity) > -1:
+                return 1
+        return 0
+
     cpdef int get_property(self, str identity):
         """
         检查客户端是否包含相关属性

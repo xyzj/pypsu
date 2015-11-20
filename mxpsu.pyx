@@ -713,7 +713,7 @@ cpdef str get_linux_ip_address(str ifname):
         return ''
 
 
-cpdef str cut_string(str instring, int width, str splitchar="-", int aslist=0):
+cpdef tuple cut_string(str instring, int width):
     """Summary
 
     Args:
@@ -727,10 +727,7 @@ cpdef str cut_string(str instring, int width, str splitchar="-", int aslist=0):
     """
     cdef int l  = len(instring)
     cdef list a = [instring[x:x + width] for x in range(0, l, width)]
-    if aslist > 0:
-        return a
-    else:
-        return splitchar.join(a)
+    return tuple(a)
 
 
 # cpdef str check_platform():
