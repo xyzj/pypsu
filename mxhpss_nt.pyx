@@ -11,7 +11,8 @@ except:
     import gevent as _gevent
     USE_SL = False
 import socket as _socket
-from mxpsu import PriorityQueue, load_license, SCRIPT_DIR, stamp2time
+from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time
+from mxhpss_comm import load_license
 import select as _select
 import time as _time
 import gc as _gc
