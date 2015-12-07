@@ -11,7 +11,7 @@ except:
     import gevent as _gevent
     USE_SL = False
 import socket as _socket
-from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time
+from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int
 from mxhpss_comm import load_license
 import select as _select
 import time as _time
@@ -33,6 +33,12 @@ EPOLL = _select.epoll()
 
 
 cdef int __license_ok():
+    """
+    许可证检查
+
+    Returns:
+        int: 0-许可证无效，1-许可证有效
+    """
     cdef str a = load_license(_os.path.join(SCRIPT_DIR, 'LICENSE'))
     if 'err' in a:
         print(a)
@@ -69,20 +75,21 @@ cdef int __license_ok():
 
 cdef class ClientSession:
     cdef public object sock, wait4send
-    cdef public int fileno, clientid,  recognition, guardtime, nothing_to_send, server_port, debug
+    cdef public int fileno, clientid, recognition, guardtime, nothing_to_send, server_port, debug
     cdef public str name, temp_recv_buffer
     cdef public double last_send_time,last_recv_time,connect_time
-    cdef public tuple address
+    cdef public tuple address, gps
+    cdef public long ip_int
     cdef list property
     def __init__(self, object sock, int fd, tuple address, int serverport, int debug=0):
-        """_socket client 实例
+        """ 初始化 socket client 实例
 
         Args:
-            sock (TYPE): _socket实例
-            fd (TYPE): file descriptor
-            address (TYPE): (ip,port)
-            serverport (TYPE): 本地监听端口
-            # socktimeout (TYPE): _socket接收超时时间
+            sock (socket): _socket实例
+            fd (int): file descriptor
+            address (tuple): (ip,port)
+            serverport (int): 本地监听端口
+            debug (int): 是否输出调试信息
         """
         global EPOLL, SEND_QUEUE, CLIENTS
         self.sock = sock
@@ -101,11 +108,11 @@ cdef class ClientSession:
         self.wait4send = None
         self.guardtime = 0
         self.address = address
+        self.ip_int = ip2int(address[0])
         self.temp_recv_buffer = ''
         self.nothing_to_send = 1
         self.server_port = serverport
-        self.longitude = 0.0  # 经度
-        self.latitude = 0.0  # 纬度
+        self.gps = (0.0, 0.0)  # 经度 纬度
         SEND_QUEUE[self.fileno] = PriorityQueue()
         self.debug = debug
         CLIENTS[self.fileno] = self
@@ -114,7 +121,7 @@ cdef class ClientSession:
 
     cpdef on_session_connect(self):
         """
-        发送欢迎词
+        连接，say hello
         """
         pass
 
@@ -123,7 +130,7 @@ cdef class ClientSession:
         再见
 
         Args:
-            closereason (TYPE): _socket关闭原因
+            closereason (str): _socket关闭原因
         """
         pass
 
@@ -138,7 +145,7 @@ cdef class ClientSession:
         数据接收处理
 
         Args:
-            recbuff (TYPE): 收到的数据
+            recbuff (str): 收到的数据
         """
         pass
 
@@ -146,7 +153,7 @@ cdef class ClientSession:
         """Summary
 
         Args:
-            showdebug (bool, optional): 设置是否显示调试信息标志位
+            showdebug (bool, optional): 设置是否输出调试信息标志位
         """
         self.debug = showdebug
 
@@ -155,7 +162,7 @@ cdef class ClientSession:
         显示调试信息
 
         Args:
-            msg (TYPE): 调试信息内容
+            msg (str): 调试信息内容
         """
         if self.debug:
             print("D", msg)
@@ -171,7 +178,10 @@ cdef class ClientSession:
         模糊查询客户端是否包含相关属性
 
         Args:
-            identity (TYPE): 自定义_socket属性
+            identity (str): 自定义_socket属性
+
+        Returns:
+            int: 0-不包含属性，1-包含属性
         """
         for pro in self.property:
             if pro.find(identity) > -1:
@@ -184,6 +194,9 @@ cdef class ClientSession:
 
         Args:
             identity (TYPE): 自定义_socket属性
+
+        Returns:
+            int: 0-不包含属性，1-包含属性
         """
         if identity in self.property:
             return 1
@@ -194,7 +207,7 @@ cdef class ClientSession:
         设置客户端识别码
 
         Args:
-            recbuff (TYPE): 接收到的数据
+            recbuff (str): 接收到的数据
         """
         pass
 
@@ -203,7 +216,7 @@ cdef class ClientSession:
         设置客户端属性
 
         Args:
-            identity (TYPE): 自定义_socket属性
+            identity (str): 设置自定义_socket属性
         """
         if not identity in self.property:
             self.property.append(identity)
@@ -213,7 +226,7 @@ cdef class ClientSession:
         设置客户端id
 
         Args:
-            nid (TYPE): 设备地址
+            nid (int): 设备地址
         """
         self.clientid = nid
 
@@ -222,7 +235,7 @@ cdef class ClientSession:
         设置最后发送时间
 
         Args:
-            itime (TYPE): 时间（long）
+            itime (int): 设置最新发送时间（long）
         """
         self.last_send_time = itime
 
@@ -258,7 +271,8 @@ cdef class ClientSession:
         检查是否超时以及发送ka
 
         Args:
-            now (TYPE): 当前时间，_time.time()格式
+            now (double): 当前时间，_time.time()格式
+            timeout (double): 超时时间，_time.time()格式
         """
         global SEND_QUEUE
         # 检查超时
@@ -279,6 +293,9 @@ cdef class ClientSession:
     cpdef int enable_send(self):
         """
         检查是否允许发送
+
+        Returns:
+            int: 0-不可以发送，1-可以发送
         """
         global EPOLL, READ_ONLY
 
@@ -361,9 +378,6 @@ cdef class EPSocketServer:
             event_timeout (TYPE): 事件监听超时
             maxevents (TYPE): 最大一次性处理事件数量
             fdlock (TYPE): fd锁
-
-        Returns:
-            TYPE: Description
         """
         self.debug = 0
         self.event_timeout = eventtimeout
@@ -379,7 +393,7 @@ cdef class EPSocketServer:
         设置调试信息开关
 
         Args:
-            showdebug (TYPE): 设置是否显示调试信息标志位
+            showdebug (int): 设置是否显示调试信息标志位
         """
         self.debug = showdebug
 
@@ -389,7 +403,7 @@ cdef class EPSocketServer:
         是否显示调试信息
 
         Args:
-            msg (TYPE): 调试信息内容
+            msg (str): 调试信息内容
         """
         if self.debug:
             print("D", msg)
@@ -397,7 +411,7 @@ cdef class EPSocketServer:
 
     cpdef object add_socket(self, tuple address):
         """
-        启动服务
+        添加需要监听的socket参数
 
         Args:
             address (tuple): ('ip', port)
@@ -441,36 +455,39 @@ cdef class EPSocketServer:
         cdef double last_gc = t
         cdef double last_lic = t
         while not IS_EXIT:
+            if USE_SL:
+                _time.sleep(0)
+            else:
+                _gevent.sleep(0)
+
             try:
+                # 获取事件
                 events = EPOLL.poll(timeout=self.event_timeout, maxevents=self.max_events)
             except Exception as ex:
                 print(ex)
-                # with open('epoll_error.log', 'a') as f:
-                #     f.writelines(['======{0}======='.format(stamp2time(_time.time())), ex, '\r\n'])
                 continue
 
             if len(events) > 0:
-                # threads = []
+                # gevent 和 stackless 不同模式协程开启
                 if USE_SL:
                     for fileno, event in events:
                         try:
-                            # threads.append(_gevent.spawn(self.main_loop, fileno, event, self.fd_lock, self.debug))
                             _sl.tasklet(self.main_loop)(fileno, event, self.debug)
                         except:
                             pass
                     _sl.run()
                 else:
                     _gevent.joinall([_gevent.spawn(self.main_loop, fileno, event, self.debug) for fileno, event in events])
-                # del threads
 
             self.do_something_after_events()
 
             t = _time.time()
+            # 资源回收
             if t - last_gc > 600:
                 _gc.collect()
                 last_gc = _time.time()
                 self.show_debug("gc")
-
+            # 许可证检查
             if t - last_lic > 86400:
                 last_lic = _time.time()
                 if not __license_ok():
@@ -478,7 +495,7 @@ cdef class EPSocketServer:
 
     cpdef do_something_after_events(self):
         """
-        处理主循环中额外事件
+        处理完内核通知后，继续处理其他事件
         """
         pass
 
@@ -487,15 +504,13 @@ cdef class EPSocketServer:
         处理连接请求
 
         Args:
-            serversocket (TYPE): 监听服务_socket实例
+            serversocket (tuple, (fileno, port)): 所有监听服务的_socket实例 or fileno
         """
         global CLIENTS
         connection, address = server_object[0].accept()
         if len(CLIENTS) < self.max_client:
+            # 初始化客户端session
             ClientSession(connection, connection.fileno(), address, server_object[1], self.debug)
-            # session_in = ClientSession(connection, connection.fileno(), address, SERVER_PORT)
-            # EPOLL.register(connection.fileno(), READ_WRITE)
-            # CLIENTS[connection.fileno()] = session_in
             self.show_debug("Session connecte from: {0}".format(address))
         else:
             connection.close()
@@ -510,7 +525,7 @@ cdef class EPSocketServer:
             fd (TYPE): file descriptor
             eve (TYPE): 事件
             fdlock (bool, optional): 是否加锁
-            debug (bool, optional): 是否调试模式
+            debug (bool, optional): 是否输出调试信息
         """
         if debug:
             self.worker(fd, eve)
@@ -531,17 +546,20 @@ cdef class EPSocketServer:
         """
         global CLIENTS
         if 1:
+            # 对方socket非法关闭
             if eve & _select.EPOLLHUP:
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)
                     if session is not None:
                         session.disconnect('_socket hup')
                     del session
+            # socket状态错误
             elif eve & _select.EPOLLERR:
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)
                     session.disconnect('_socket error')
                     del session
+            # socket 有数据读
             elif eve & _select.EPOLLIN:
                 if fn in self.server_fd.keys():
                     self.connection_request(self.server_fd.get(fn))
@@ -551,6 +569,7 @@ cdef class EPSocketServer:
                         if session is not None:
                             session.receive_data()
                         del session
+            # socket 可写
             elif eve & _select.EPOLLOUT:
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)

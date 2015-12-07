@@ -771,7 +771,7 @@ cpdef long ip2int(str strip, int usehostorder=0):
         return -1
 
 
-cpdef str ip2string(int intip, int usehostorder=0):
+cpdef str ip2string(long intip, int usehostorder=0):
     """Summary
 
     Args:

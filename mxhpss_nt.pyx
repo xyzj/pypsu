@@ -11,7 +11,7 @@ except:
     import gevent as _gevent
     USE_SL = False
 import socket as _socket
-from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time
+from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int
 from mxhpss_comm import load_license
 import select as _select
 import time as _time
@@ -136,20 +136,21 @@ EPOLL = Epoll()
 
 cdef class ClientSession:
     cdef public object sock, wait4send
-    cdef public int fileno, clientid,  recognition, guardtime, nothing_to_send, server_port, debug
+    cdef public int fileno, clientid, recognition, guardtime, nothing_to_send, server_port, debug
     cdef public str name, temp_recv_buffer
     cdef public double last_send_time,last_recv_time,connect_time
     cdef public tuple address
+    cdef public long ip_int
     cdef list property
     def __init__(self, object sock, int fd, tuple address, int serverport, int debug=0):
-        """_socket client 实例
+        """初始化 socket client 实例
 
         Args:
-            sock (TYPE): _socket实例
-            fd (TYPE): file descriptor
-            address (TYPE): (ip,port)
-            serverport (TYPE): 本地监听端口
-            # socktimeout (TYPE): _socket接收超时时间
+            sock (socket): _socket实例
+            fd (int): file descriptor
+            address (tuple): (ip,port)
+            serverport (int): 本地监听端口
+            debug (int): 是否输出调试信息
         """
         global EPOLL, SEND_QUEUE, CLIENTS
         self.sock = sock
@@ -167,6 +168,7 @@ cdef class ClientSession:
         self.wait4send = None
         self.guardtime = 0
         self.address = address
+        self.ip_int = ip2int(address[0])
         self.temp_recv_buffer = ''
         self.nothing_to_send = 1
         self.server_port = serverport
@@ -180,7 +182,7 @@ cdef class ClientSession:
 
     cpdef on_session_connect(self):
         """
-        发送欢迎词
+        连接，say hello
         """
         pass
 
@@ -221,7 +223,7 @@ cdef class ClientSession:
         显示调试信息
 
         Args:
-            msg (TYPE): 调试信息内容
+            msg (str): 调试信息内容
         """
         if self.debug:
             print("D", msg)
@@ -238,6 +240,9 @@ cdef class ClientSession:
 
         Args:
             identity (TYPE): 自定义_socket属性
+
+        Returns:
+            int: 0-不包含属性，1-包含属性
         """
         for pro in self.property:
             if pro.find(identity) > -1:
@@ -250,6 +255,9 @@ cdef class ClientSession:
 
         Args:
             identity (TYPE): 自定义_socket属性
+
+        Returns:
+            int: 0-不包含属性，1-包含属性
         """
         if identity in self.property:
             return 1
@@ -324,7 +332,8 @@ cdef class ClientSession:
         检查是否超时以及发送ka
 
         Args:
-            now (TYPE): 当前时间，_time.time()格式
+            now (double): 当前时间，_time.time()格式
+            timeout (double): 超时时间，_time.time()格式
         """
         global SEND_QUEUE
         # 检查超时
@@ -345,6 +354,9 @@ cdef class ClientSession:
     cpdef int enable_send(self):
         """
         检查是否允许发送
+
+        Returns:
+            int: 0-不可以发送，1-可以发送
         """
         global EPOLL, READ_ONLY
 
@@ -427,9 +439,6 @@ cdef class NTSocketServer:
             event_timeout (TYPE): 事件监听超时
             maxevents (TYPE): 最大一次性处理事件数量
             fdlock (TYPE): fd锁
-
-        Returns:
-            TYPE: Description
         """
         self.debug = 0
         self.event_timeout = eventtimeout
@@ -445,7 +454,7 @@ cdef class NTSocketServer:
         设置调试信息开关
 
         Args:
-            showdebug (TYPE): 设置是否显示调试信息标志位
+            showdebug (int): 设置是否显示调试信息标志位
         """
         self.debug = showdebug
 
@@ -455,7 +464,7 @@ cdef class NTSocketServer:
         是否显示调试信息
 
         Args:
-            msg (TYPE): 调试信息内容
+            msg (str): 调试信息内容
         """
         if self.debug:
             print("D", msg)
@@ -463,7 +472,7 @@ cdef class NTSocketServer:
 
     cpdef object add_socket(self, tuple address):
         """
-        启动服务
+        添加需要监听的socket参数
 
         Args:
             address (tuple): ('ip', port)
@@ -486,7 +495,9 @@ cdef class NTSocketServer:
 
 
     cpdef server_forever(self):
-        # file descriptor事件监听
+        """
+        启动服务
+        """
         global READ_ONLY, READ_WRITE
         if not __license_ok():
             return
@@ -499,6 +510,8 @@ cdef class NTSocketServer:
         cdef double last_lic = t
 
         while not IS_EXIT:
+            _gevent.sleep(0)
+
             wr = [READ_ONLY[i:i + 500] for i in range(0, len(READ_ONLY), 500)]
             ww = [READ_WRITE[i:i + 500] for i in range(0, len(READ_WRITE), 500)]
             for i in range(len(wr) - len(ww)):
@@ -567,16 +580,17 @@ cdef class NTSocketServer:
                 _gevent.joinall(x)
             del thread, threads
 
-            _gevent.sleep(0.1)
+            # _gevent.sleep(0.1)
 
             self.do_something_after_events()
 
+            # 资源回收
             t = _time.time()
             if t - last_gc > 600:
                 _gc.collect()
                 last_gc = t
                 self.show_debug("gc")
-
+            # 许可证检查
             if t - last_lic > 86400:
                 last_lic = t
                 if not __license_ok():
@@ -594,15 +608,13 @@ cdef class NTSocketServer:
         处理连接请求
 
         Args:
-            serversocket (TYPE): 监听服务_socket实例
+            serversocket (tuple, (fileno, port)): 所有监听服务的_socket实例 or fileno
         """
         global CLIENTS
         connection, address = server_object[0].accept()
         if len(CLIENTS) < self.max_client:
+            # 初始化客户端session
             ClientSession(connection, connection.fileno(), address, server_object[1], self.debug)
-            # session_in = ClientSession(connection, connection.fileno(), address, SERVER_PORT)
-            # EPOLL.register(connection.fileno(), READ_WRITE)
-            # CLIENTS[connection.fileno()] = session_in
             self.show_debug("Session connecte from: {0}".format(address))
         else:
             connection.close()
@@ -637,13 +649,15 @@ cdef class NTSocketServer:
             eve (TYPE): 事件
         """
         global CLIENTS
-        if True:
+        if 1:
+            # socket状态错误
             if eve == 'err':
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)
                     if session is not None:
                         session.disconnect('socket err')
                     del session
+            # socket 有数据读
             elif eve == 'in':
                 if fn in self.server_fd.keys():
                     self.connection_request(self.server_fd.get(fn))
@@ -653,6 +667,7 @@ cdef class NTSocketServer:
                         if session is not None:
                             session.receive_data()
                         del session
+            # socket 可写
             elif eve == 'out':
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)
