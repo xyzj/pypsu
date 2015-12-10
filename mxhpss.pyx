@@ -138,7 +138,7 @@ cdef class ClientSession:
         """
         数据发送
         """
-        pass
+        self.sock.send(self.wait4send)
 
     cpdef on_session_recv(self, str recbuff):
         """
@@ -147,7 +147,9 @@ cdef class ClientSession:
         Args:
             recbuff (str): 收到的数据
         """
-        pass
+        global SEND_QUEUE, CLIENTS
+        for k in CLIENTS.keys():
+            SEND_QUEUE[k].put_now(recbuff)
 
     cdef set_debug(self, int showdebug=0):
         """Summary
@@ -263,7 +265,7 @@ cdef class ClientSession:
             del CLIENTS[self.fileno]
         except:
             pass
-        self.show_debug("client close: {0}".format(closereason))
+        self.show_debug("close: {0}".format(closereason))
         self.on_session_close(closereason)
 
     cpdef check_timeout(self, double now, int timeout):
@@ -329,8 +331,18 @@ cdef class ClientSession:
         发送数据
         """
         # self.last_send_time = _time.time()
-        self.show_debug("send:".format(self.wait4send))
-        self.on_session_send()
+        self.show_debug("send:{0}".format(self.wait4send))
+
+        if self.debug:
+            self.on_session_send()
+        else:
+            try:
+                self.on_session_send()
+            except Exception as ex:
+                print(ex)
+
+        if SEND_QUEUE[self.fileno].empty():
+            EPOLL.modify(self.fileno, READ_ONLY)
 
     cpdef receive_data(self):
         """
@@ -356,7 +368,7 @@ cdef class ClientSession:
             recbuff = self.temp_recv_buffer + recbuff
             self.temp_recv_buffer = ''
 
-        self.show_debug("rec:{0}".format(recbuff))
+        self.show_debug("recv:{0}".format(recbuff))
 
         if self.debug:
             self.on_session_recv(recbuff)
@@ -366,11 +378,14 @@ cdef class ClientSession:
             except Exception as ex:
                 print(ex)
 
+        if not SEND_QUEUE[self.fileno].empty():
+            EPOLL.modify(self.fileno, READ_WRITE)
+
 
 cdef class EPSocketServer:
     cdef public int debug, event_timeout, max_events, fd_lock, max_client
     cdef public dict server_fd
-    def __init__(self, int maxclient, int eventtimeout, int maxevents, int fdlock):
+    def __init__(self, int maxclient=1900, int eventtimeout=0, int maxevents=5000, int fdlock=0):
         """高性能TCP服务基类
 
         Args:
@@ -511,10 +526,10 @@ cdef class EPSocketServer:
         if len(CLIENTS) < self.max_client:
             # 初始化客户端session
             ClientSession(connection, connection.fileno(), address, server_object[1], self.debug)
-            self.show_debug("Session connecte from: {0}".format(address))
+            self.show_debug("conn: {0}".format(address))
         else:
             connection.close()
-            self.show_debug("No more connection: {0}".format(address))
+            self.show_debug("conn: no more {0}".format(address))
 
 
     cpdef main_loop(self, int fd, object eve, int debug=0):

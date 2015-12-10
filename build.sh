@@ -12,3 +12,5 @@ sudo cp -vf mxpsu.so /usr/lib/python2.7/dist-packages/
 scp mxhpss.so cos7:/tmp
 scp mxhpss_comm.so cos7:/tmp
 scp mxpsu.so cos7:/tmp
+
+mv mxhpss_nt.so ../mwsc/
