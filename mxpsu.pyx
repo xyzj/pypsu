@@ -176,7 +176,7 @@ cdef class GpsPoint:
         self.lat = lat
 
 
-cpdef double get_distance(a, b):
+cpdef double getDistance(a, b):
     """Summary
 
     Args:
@@ -190,12 +190,12 @@ cpdef double get_distance(a, b):
     return c
 
 
-cpdef str format_log(str log_txt, str dateformat='%Y-%m-%d %H:%M:%S'):
+cpdef str formatLog(str log_txt, str dateformat='%Y-%m-%d %H:%M:%S'):
     cdef str a = str(u"{0} {1}".format(_time.strftime(dateformat, _time.localtime()), log_txt))
     return a
 
 
-cpdef str show_our_history():
+cpdef str showOurHistory():
     cdef str oh = ''
     if _os.path.isfile("OURHISTORY"):
         with open("OURHISTORY", "r") as f:
@@ -226,9 +226,9 @@ cdef class AdvLogger:
         self.logger = logging.getLogger(file_name_prefix)
         self.logger.setLevel(logging.DEBUG)
         # fmt = logging.Formatter(fmt='%(asctime)s [%(levelno)s] %(message)s', datefmt=datefmt)
-        self.set_log_level(datefmt, console_level, file_level, file_name_prefix, backupcount)
+        self.setLogLevel(datefmt, console_level, file_level, file_name_prefix, backupcount)
 
-    cdef set_log_level(self, str datefmt, int console_level, str file_level, str file_name_prefix, int backupcount):
+    cdef setLogLevel(self, str datefmt, int console_level, str file_level, str file_name_prefix, int backupcount):
         for h in self.logger.handlers:
             self.logger.removeHandler(h)
 
@@ -279,7 +279,7 @@ cdef class AdvLogger:
         # self.logger.shutdown()
         self.logger = None
 
-    cpdef savelog(self, s, int l=40):
+    cpdef saveLog(self, s, int l=40):
         if self.logger is None:
             return
 
@@ -354,7 +354,7 @@ cdef class MyLogger:
             self.logger.removeHandler(h)
         self.logger = None
 
-    cpdef savelog(self, s, int l=40):
+    cpdef saveLog(self, s, int l=40):
         if self.logger is None:
             return
 
@@ -625,7 +625,7 @@ cdef class PriorityQueue:
 #     return output
 
 
-cpdef str get_linux_ip_address(str ifname):
+cpdef str getLinuxIpAddress(str ifname):
     """Summary
 
     Args:
@@ -647,7 +647,7 @@ cpdef str get_linux_ip_address(str ifname):
         return ''
 
 
-cpdef tuple cut_string(str instring, int width):
+cpdef tuple cutString(str instring, int width):
     """Summary
 
     Args:
@@ -664,7 +664,7 @@ cpdef tuple cut_string(str instring, int width):
     return tuple(a)
 
 
-# cpdef str check_platform():
+# cpdef str checkPlatform():
 #     """Summary
 
 #     Returns:
@@ -681,7 +681,7 @@ cpdef tuple cut_string(str instring, int width):
 #         return "win7"
 
 
-cpdef check_folder(str folders='log,conf', int uplevel=0):
+cpdef checkFolder(str folders='log,conf', int uplevel=0):
     """Summary
 
     Args:
@@ -790,7 +790,7 @@ cpdef str ip2string(long intip, int usehostorder=0):
         return ''
 
 
-cpdef str convert_protobuf(object pb2msg):
+cpdef str convertProtobuf(object pb2msg):
     """Summary
 
     Args:
@@ -807,7 +807,7 @@ cpdef str convert_protobuf(object pb2msg):
     return a
 
 
-cpdef str hex_string(str argv):
+cpdef str hexString(str argv):
     """Summary
 
     Args:
@@ -816,12 +816,12 @@ cpdef str hex_string(str argv):
     Returns:
         TYPE: Description
     """
-    cdef list a = hex_list(list(argv))
+    cdef list a = hexList(list(argv))
     cdef list b = [hex(s).replace('0x', '') for s in a]
     return '-'.join(b)
 
 
-cpdef list hex_list(list argv):
+cpdef list hexList(list argv):
     """Summary
 
     Args:
@@ -838,7 +838,7 @@ cpdef list hex_list(list argv):
     return hhex
 
 
-cpdef int check_lrc(list databytes):
+cpdef int checkLrc(list databytes):
     """
     检查纵校验
 
@@ -848,13 +848,13 @@ cpdef int check_lrc(list databytes):
     cdef int l = len(databytes)
     cdef int lcr = databytes[l - 1]
     cdef list data = databytes[:l - 1]
-    if lcr == lrc_vb(data):
+    if lcr == lrcVB(data):
         return 1
     else:
         return 0
 
 
-cpdef int lrc_vb(list databytes):
+cpdef int lrcVB(list databytes):
     """
     计算纵校验
 
@@ -868,7 +868,7 @@ cpdef int lrc_vb(list databytes):
     return a
 
 
-cpdef int check_crc16(databytes):
+cpdef int checkCrc16(databytes):
     """
     检查crc
 
@@ -877,13 +877,13 @@ cpdef int check_crc16(databytes):
     """
     crc = (databytes[len(databytes) - 2], databytes[len(databytes) - 1])
     data = databytes[0:len(databytes) - 2]
-    if crc == crc16_vb(data):
+    if crc == crc16VB(data):
         return 1
     else:
         return 0
 
 
-cpdef tuple crc16_vb(list databytes):
+cpdef tuple crc16VB(list databytes):
     """
     计算crc
 
@@ -962,7 +962,7 @@ cpdef str list2string(list datalist, str splitchar="-", int compress=0):
         return s
 
 
-cpdef str get_mac():
+cpdef str getMac():
     """Summary
 
     Returns:
@@ -973,7 +973,7 @@ cpdef str get_mac():
     return ":".join(x)
 
 
-cpdef str build_mac(int head=0):
+cpdef str buildMac(int head=0):
     """
     生成随机mac地址
     :param head: 0-jue，1-kvm，2+-当前网卡厂商编码
@@ -988,7 +988,7 @@ cpdef str build_mac(int head=0):
     elif head > 0:  # kvm
         machex = "52:54:00:"
     else:  # 本地网卡厂家
-        machex = get_mac()[:9]
+        machex = getMac()[:9]
 
     cdef list mac = [hex(_random.randint(0x00,0x7f)).replace('0x',''), hex(_random.randint(0x00,0xff)).replace('0x',''), hex(_random.randint(0x00,0xff)).replace('0x','')]
     # cdef list mac = [str(_uuid.uuid1())[2:4], str(_uuid.uuid1())[4:6], str(_uuid.uuid1())[6:8]]
@@ -998,7 +998,7 @@ cpdef str build_mac(int head=0):
     return hw
 
 
-cpdef long time_difference(str t1, str t2):
+cpdef long timeDifference(str t1, str t2):
     """
     计算时间差，格式%Y-%m-%d %H:%M:%S
     :param t1: 起始时间
@@ -1019,7 +1019,7 @@ cpdef long time_difference(str t1, str t2):
         return long(_time.mktime(x2) - _time.mktime(x1))
 
 
-cpdef str check_platform():
+cpdef str checkPlatform():
     p = _platform.platform().lower()
     if "linux" in p:
         return "linux"
@@ -1031,8 +1031,8 @@ cpdef str check_platform():
         return "win7"
 
 
-cpdef str set_windows_style():
-    s = check_platform()
+cpdef str setWindowsStyle():
+    s = checkPlatform()
     if s == "win7":
         return "windowsvista"
     elif s == "winxp":
@@ -1041,7 +1041,7 @@ cpdef str set_windows_style():
         return "cleanlooks"
 
 
-cpdef int check_win_process(str name):
+cpdef int checkWinProcess(str name):
     p = _os.popen('tasklist /FI "imagename eq {0}" /FO "csv" /NH'.format(name))
     s = p.read()
     if s.count(name) > 0:
@@ -1050,7 +1050,7 @@ cpdef int check_win_process(str name):
         return 0
 
 
-cpdef tuple ip_decompose(list xips):
+cpdef tuple ipDecompose(list xips):
     """Summary
 
     Args:
@@ -1076,7 +1076,7 @@ cpdef tuple ip_decompose(list xips):
             g = e[:l]
             for i in range(1, f):
                 h = g + '{0:0{1}b}'.format(i, 8 * 4 - l)
-                k = cut_string(h, 8)
+                k = cutString(h, 8)
                 w, x, y, z = [int(u, 2) for u in k.split('-')]
                 if p == '0':
                     xaddr.append(('{0}.{1}.{2}.{3}'.format(w, x, y, z)))

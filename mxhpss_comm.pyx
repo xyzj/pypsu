@@ -13,7 +13,7 @@ import time as _time
 import base64 as _base64
 
 
-cpdef str hash_md5(str sargs):
+cpdef str hashMD5(str sargs):
     """Summary
 
     Args:
@@ -87,5 +87,5 @@ cdef str __load_license(str licpath='LICENSE'):
     return str(mlic["timediff"])
 
 
-cpdef str load_license(str licpath='LICENSE'):
+cpdef str loadLicense(str licpath='LICENSE'):
     return __load_license(licpath)
