@@ -167,7 +167,7 @@ cdef class ClientSession:
             msg (str): 调试信息内容
         """
         if self.debug:
-            print("D", msg)
+            print("[D] {0} {1}".format(stamp2time(_time.time()), repr(msg)))
 
     cpdef setName(self):
         """
@@ -308,7 +308,7 @@ cdef class ClientSession:
             self.wait4send = senddata
             del senddata
 
-    cpdef doSendData(self):
+    cpdef send(self):
         """
         发送数据
         """
@@ -326,7 +326,7 @@ cdef class ClientSession:
         if SEND_QUEUE[self.fileno].empty():
             EPOLL.modify(self.fileno, READ_ONLY)
 
-    cpdef doReceiveData(self):
+    cpdef receive(self):
         """
         接收数据
         """
@@ -335,7 +335,7 @@ cdef class ClientSession:
             recbuff = self.sock.recv(8192)
         except Exception as ex:
             self.showDebug("recerr:{0}:{1}".format(ex.message, recbuff))
-            self.disconnect('_socket recv error')
+            self.disconnect('socket recv error')
             return 0
 
         # 客户端断开
@@ -403,7 +403,7 @@ cdef class EPSocketServer:
             msg (str): 调试信息内容
         """
         if self.debug:
-            print("D", msg)
+            print("[D] {0} {1}".format(stamp2time(_time.time()), repr(msg)))
 
 
     cpdef object addSocket(self, tuple address):
@@ -496,7 +496,7 @@ cdef class EPSocketServer:
         """
         pass
 
-    cpdef doConnectionRequest(self, tuple server_object):
+    cpdef connect(self, tuple server_object):
         """
         处理连接请求
 
@@ -548,23 +548,23 @@ cdef class EPSocketServer:
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)
                     if session is not None:
-                        session.disconnect('_socket hup')
+                        session.disconnect('socket hup')
                     del session
             # socket状态错误
             elif eve & _select.EPOLLERR:
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)
-                    session.disconnect('_socket error')
+                    session.disconnect('socket error')
                     del session
             # socket 有数据读
             elif eve & _select.EPOLLIN:
                 if fn in self.server_fd.keys():
-                    self.doConnectionRequest(self.server_fd.get(fn))
+                    self.connect(self.server_fd.get(fn))
                 else:
                     if fn in CLIENTS.keys():
                         session = CLIENTS.get(fn)
                         if session is not None:
-                            session.doReceiveData()
+                            session.receive()
                         del session
             # socket 可写
             elif eve & _select.EPOLLOUT:
@@ -572,5 +572,5 @@ cdef class EPSocketServer:
                     session = CLIENTS.get(fn)
                     if session is not None:
                         if session.enableSend():
-                            session.doSendData()
+                            session.send()
                     del session

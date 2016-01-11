@@ -10,7 +10,7 @@ extensions = [
         include_dirs = [],
         libraries = [],
         library_dirs = []),
-    Extension("mxlic", ["mxlic.pyx"],
+    Extension("lic", ["lic.pyx"],
         include_dirs = [],
         libraries = [],
         library_dirs = []),

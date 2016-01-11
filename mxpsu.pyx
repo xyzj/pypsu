@@ -261,7 +261,7 @@ cdef class AdvLogger:
     cdef _mkdirs(self):
         if not _os.path.exists(self.log_dir):
             try:
-                _os.makedirs(self.log_dir)
+                _os.makedirs(self.log_dir, mode=777)
             except Exception as e:
                 print(str(e))
 
@@ -339,7 +339,7 @@ cdef class MyLogger:
     cdef _mkdirs(self):
         if not _os.path.exists(self.log_dir):
             try:
-                _os.makedirs(self.log_dir)
+                _os.makedirs(self.log_dir, mode=777)
             except Exception as e:
                 print(str(e))
 

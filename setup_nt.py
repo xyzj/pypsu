@@ -23,10 +23,10 @@ extensions = [
         include_dirs = [],
         libraries = [],
         library_dirs = []),
-    # # Extension("_nt", ["tcsnt.pyx"],
-    #     include_dirs = [],
-    #     libraries = [],
-    #     library_dirs = []),
+    Extension("mxsp_nt", ["mxsp_nt.pyx"],
+        include_dirs = [],
+        libraries = [],
+        library_dirs = []),
 ]
 
 setup(

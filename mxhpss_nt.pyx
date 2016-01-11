@@ -17,6 +17,9 @@ import select as _select
 import time as _time
 import gc as _gc
 import os as _os
+from gevent import monkey
+monkey.patch_select
+monkey.patch_socket
 
 # Linux EPOLL用常量
 READ_ONLY = []
@@ -139,7 +142,7 @@ cdef class ClientSession:
     cdef public int fileno, clientid, recognition, guardtime, nothing_to_send, server_port, debug
     cdef public str name, temp_recv_buffer
     cdef public double last_send_time,last_recv_time,connect_time
-    cdef public tuple address
+    cdef public tuple address, gps
     cdef public long ip_int
     cdef list attributes
     def __init__(self, object sock, int fd, tuple address, int serverport, int debug=0):
@@ -172,8 +175,7 @@ cdef class ClientSession:
         self.temp_recv_buffer = ''
         self.nothing_to_send = 1
         self.server_port = serverport
-        self.longitude = 0.0  # 经度
-        self.latitude = 0.0  # 纬度
+        self.gps = (0.0, 0.0)  # 经度 纬度
         SEND_QUEUE[self.fileno] = PriorityQueue()
         self.debug = debug
         CLIENTS[self.fileno] = self
@@ -228,7 +230,7 @@ cdef class ClientSession:
             msg (str): 调试信息内容
         """
         if self.debug:
-            print("D", msg)
+            print("[D] {0} {1}".format(stamp2time(_time.time()), repr(msg)))
 
     cpdef setName(self):
         """
@@ -369,7 +371,7 @@ cdef class ClientSession:
             self.wait4send = senddata
             del senddata
 
-    cpdef doSendData(self):
+    cpdef send(self):
         """
         发送数据
         """
@@ -388,7 +390,7 @@ cdef class ClientSession:
             EPOLL.modify(self.fileno, READ_ONLY)
 
 
-    cpdef doReceiveData(self):
+    cpdef receive(self):
         """
         接收数据
         """
@@ -397,7 +399,7 @@ cdef class ClientSession:
             recbuff = self.sock.recv(8192)
         except Exception as ex:
             self.showDebug("recerr:{0}:{1}".format(ex.message, recbuff))
-            self.disconnect('_socket recv error')
+            self.disconnect('socket recv error')
             return 0
 
         # 客户端断开
@@ -465,7 +467,7 @@ cdef class NTSocketServer:
             msg (str): 调试信息内容
         """
         if self.debug:
-            print("D", msg)
+            print("[D] {0} {1}".format(stamp2time(_time.time()), repr(msg)))
 
 
     cpdef object addSocket(self, tuple address):
@@ -603,7 +605,7 @@ cdef class NTSocketServer:
         """
         pass
 
-    cpdef doConnectionRequest(self, tuple server_object):
+    cpdef connect(self, tuple server_object):
         """
         处理连接请求
 
@@ -660,12 +662,12 @@ cdef class NTSocketServer:
             # socket 有数据读
             elif eve == 'in':
                 if fn in self.server_fd.keys():
-                    self.doConnectionRequest(self.server_fd.get(fn))
+                    self.connect(self.server_fd.get(fn))
                 else:
                     if fn in CLIENTS.keys():
                         session = CLIENTS.get(fn)
                         if session is not None:
-                            session.doReceiveData()
+                            session.receive()
                         del session
             # socket 可写
             elif eve == 'out':
@@ -673,5 +675,5 @@ cdef class NTSocketServer:
                     session = CLIENTS.get(fn)
                     if session is not None:
                         if session.enableSend():
-                            session.doSendData()
+                            session.send()
                     del session
