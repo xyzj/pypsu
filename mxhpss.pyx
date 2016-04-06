@@ -1,27 +1,30 @@
 # -*- coding: utf-8 -*-
 
 __author__ = 'minamoto'
-__ver__ = '0.1'
+__ver__ = '0.2'
 __doc__ = 'High-performance socket service'
 
-try:
-    import stackless as _sl
-    USE_SL = True
-except:
-    import gevent as _gevent
-    USE_SL = False
+import gevent as _gevent
 import socket as _socket
-from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int
+from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform
 from mxhpss_comm import loadLicense
 import select as _select
 import time as _time
 import gc as _gc
 import os as _os
 
-# Linux EPOLL用常量
-READ_ONLY = (_select.EPOLLIN | _select.EPOLLHUP | _select.EPOLLERR)
-READ_WRITE = (READ_ONLY | _select.EPOLLOUT)
-WRITE_ONLY = (_select.EPOLLOUT | _select.EPOLLHUP | _select.EPOLLERR)
+# Constants from the epoll module
+_EPOLLIN = 0x001
+_EPOLLPRI = 0x002
+_EPOLLOUT = 0x004
+_EPOLLERR = 0x008
+_EPOLLHUP = 0x010
+_EPOLLRDHUP = 0x2000
+_EPOLLONESHOT = (1 << 30)
+_EPOLLET = (1 << 31)
+
+# Our events map exactly to the epoll events
+NONE = 0
 
 IS_EXIT = 0
 # 客户端集合{fileno, ClientSession}
@@ -29,17 +32,26 @@ CLIENTS = {}
 # 发送队列{fd, SendData}
 SEND_QUEUE = {}
 # epoll实例
-EPOLL = _select.epoll()
+if Platform.isLinux():
+    IMPL = _select.epoll()
+    ERROR = _EPOLLERR | _EPOLLHUP
+    READ = _EPOLLIN | ERROR
+    WRITE = _EPOLLOUT | READ
+    WRITE_ONLY = _EPOLLOUT | ERROR
+else:
+    IMPL = None
+    READ = []
+    WRITE = []
 
 
-cdef int __license_ok():
+def __license_ok():
     """
     许可证检查
 
     Returns:
         int: 0-许可证无效，1-许可证有效
     """
-    cdef str a = loadLicense(_os.path.join(SCRIPT_DIR, 'LICENSE'))
+    a = loadLicense(_os.path.join(SCRIPT_DIR, 'LICENSE'))
     if 'err' in a:
         print(a)
         return 0
@@ -47,41 +59,64 @@ cdef int __license_ok():
         return 1
 
 
-# cdef class SendData:
-#     cdef public str cmd, senddata
-#     cdef public int guardtime, loglevel, wait4ans, pri, dtype
-#     def __init__(self, senddata, guardtime=0, loglevel=20, cmd='', wait4ans=0, pri=5, dtype=0):
-#         """发送数据包实例
-
-#         Args:
-#             senddata (TYPE): 发送消息内容
-#             guardtime (int, optional): 发送消息保护时间
-#             loglevel (int, optional): 消息日志等级
-#             cmd (str, optional): 消息指令
-#             wait4ans (bool, optional): 是否等待应答
-#             pri (int, optional): 消息优先级
-#             dtype (int，optional): 数据发送类型0-hex，1-ascii
-#         Returns:
-#             TYPE: Description
-#         """
-#         self.cmd = cmd
-#         self.senddata = senddata
-#         self.guardtime = int(guardtime)
-#         self.wait4ans = wait4ans
-#         self.loglevel = int(loglevel)
-#         self.pri = pri
-#         self.dtype = dtype
+def register(fileno, objwatch, ssock=None):
+    global READ, WRITE, CLIENTS, IMPL
+    if Platform.isLinux():
+        IMPL.register(fileno, objwatch)
+    else:
+        if ssock is not None:
+            READ.append(ssock)
+        else:
+            sock = CLIENTS.get(fileno)
+            if sock is not None:
+                if objwatch is READ:
+                    if sock.sock not in READ:
+                        READ.append(sock.sock)
+                elif objwatch is WRITE:
+                    if sock.sock not in WRITE:
+                        WRITE.append(sock.sock)
 
 
-cdef class ClientSession:
-    cdef public object sock, wait4send
-    cdef public int fileno, clientid, recognition, guardtime, nothing_to_send, server_port, debug
-    cdef public str name, temp_recv_buffer
-    cdef public double last_send_time,last_recv_time,connect_time
-    cdef public tuple address, gps
-    cdef public long ip_int
-    cdef list attributes
-    def __init__(self, object sock, int fd, tuple address, int serverport, int debug=0):
+def modify(fileno, objwatch):
+    global READ, WRITE, CLIENTS, IMPL
+    if Platform.isLinux():
+        IMPL.modify(fileno, objwatch)
+    else:
+        sock = CLIENTS.get(fileno)
+        if sock is not None:
+            if objwatch is READ:
+                try:
+                    WRITE.remove(sock.sock)
+                except:
+                    pass
+            elif objwatch is WRITE:
+                if sock.sock not in WRITE:
+                    WRITE.append(sock.sock)
+
+
+def unregister(fileno):
+    global READ, WRITE, CLIENTS, IMPL
+    if Platform.isLinux():
+        try:
+            IMPL.unregister(fileno)
+        except:
+            pass
+    else:
+        sock = CLIENTS.get(fileno)
+        if sock is not None:
+            try:
+                READ.remove(sock.sock)
+            except:
+                pass
+            try:
+                WRITE.remove(sock.sock)
+            except:
+                pass
+
+
+class ClientSession(object):
+
+    def __init__(self, sock, fd, address, serverport, debug=0):
         """ 初始化 socket client 实例
 
         Args:
@@ -91,12 +126,12 @@ cdef class ClientSession:
             serverport (int): 本地监听端口
             debug (int): 是否输出调试信息
         """
-        global EPOLL, SEND_QUEUE, CLIENTS
+        global SEND_QUEUE, CLIENTS
         self.sock = sock
         if self.sock is not None:
             self.sock.setblocking(0)
-        cdef double t = _time.time()
-        # cdef list p = []
+        t = _time.time()
+        # def list p = []
         self.fileno = fd
         self.last_send_time = t
         self.last_recv_time = t
@@ -116,16 +151,16 @@ cdef class ClientSession:
         SEND_QUEUE[self.fileno] = PriorityQueue()
         self.debug = debug
         CLIENTS[self.fileno] = self
-        EPOLL.register(self.fileno, READ_ONLY)
+        register(self.fileno, READ)
         self.onSessionConnect()
 
-    cpdef onSessionConnect(self):
+    def onSessionConnect(self):
         """
         连接，say hello
         """
         self.sock.send('hello')
 
-    cpdef onSessionClose(self, str closereason):
+    def onSessionClose(self, closereason):
         """
         再见
 
@@ -134,13 +169,13 @@ cdef class ClientSession:
         """
         pass
 
-    cpdef onSessionSend(self):
+    def onSessionSend(self):
         """
         数据发送
         """
         self.sock.send(self.wait4send)
 
-    cpdef onSessionRecv(self, str recbuff):
+    def onSessionRecv(self, recbuff):
         """
         数据接收处理
 
@@ -151,7 +186,7 @@ cdef class ClientSession:
         for k in CLIENTS.keys():
             SEND_QUEUE[k].put_now(recbuff)
 
-    cdef setDebug(self, int showdebug=0):
+    def setDebug(self, showdebug=0):
         """Summary
 
         Args:
@@ -159,7 +194,7 @@ cdef class ClientSession:
         """
         self.debug = showdebug
 
-    cpdef showDebug(self, str msg):
+    def showDebug(self, msg):
         """
         显示调试信息
 
@@ -169,13 +204,13 @@ cdef class ClientSession:
         if self.debug:
             print("[D] {0} {1}".format(stamp2time(_time.time()), repr(msg)))
 
-    cpdef setName(self):
+    def setName(self):
         """
         设置_socket连接名称
         """
         pass
 
-    cpdef int fuzzyQueryProperty(self, str attribute):
+    def fuzzyQueryProperty(self, attribute):
         """
         模糊查询客户端是否包含相关属性
 
@@ -190,7 +225,7 @@ cdef class ClientSession:
                 return 1
         return 0
 
-    cpdef int queryProperty(self, str attribute):
+    def queryProperty(self, attribute):
         """
         检查客户端是否包含相关属性
 
@@ -204,7 +239,7 @@ cdef class ClientSession:
             return 1
         return 0
 
-    cpdef setRecognition(self, str recbuff):
+    def setRecognition(self, recbuff):
         """
         设置客户端识别码
 
@@ -213,30 +248,30 @@ cdef class ClientSession:
         """
         pass
 
-    cpdef setProperty(self, str attribute):
+    def setProperty(self, attribute):
         """
         设置客户端属性
 
         Args:
             attribute (str): 设置自定义_socket属性
         """
-        if not attribute in self.attributes:
+        if attribute not in self.attributes:
             self.attributes.append(attribute)
 
-    cpdef disconnect(self, str closereason=''):
+    def disconnect(self, closereason=''):
         """
         断开客户端_socket
 
         Args:
             closereason (str, optional): _socket关闭原因
         """
-        global EPOLL, CLIENTS, SEND_QUEUE
+        global CLIENTS, SEND_QUEUE
         try:
             del SEND_QUEUE[self.fileno]
         except:
             pass
         try:
-            EPOLL.unregister(self.fileno)
+            unregister(self.fileno)
         except:
             pass
         try:
@@ -250,7 +285,7 @@ cdef class ClientSession:
         self.showDebug("close: {0}".format(closereason))
         self.onSessionClose(closereason)
 
-    cpdef checkTimeout(self, double now, int timeout):
+    def checkTimeout(self, now, timeout):
         """
         检查是否超时以及发送ka
 
@@ -264,37 +299,38 @@ cdef class ClientSession:
             self.disconnect('timeout')
             return
 
-        if self.recognition == -1 and now - self.last_send_time > 60 and SEND_QUEUE[self.fileno].empty():
+        if self.recognition == -1 and now - self.last_send_time > 60 and SEND_QUEUE[
+                self.fileno].empty():
             self.disconnect('unregistered connection')
             return
 
-    cdef isNothingSend(self):
+    def isNothingSend(self):
         """
         检查发送队列是否为空
         """
         return self.nothing_to_send
 
-    cpdef int enableSend(self):
+    def enableSend(self):
         """
         检查是否允许发送
 
         Returns:
             int: 0-不可以发送，1-可以发送
         """
-        global EPOLL, READ_ONLY
+        global READ
 
-        cdef double t = _time.time()
+        t = _time.time()
         if (t - self.last_send_time) * 1000 >= self.guardtime:
             self.setWaitForSend()
             if self.wait4send is None:
-                EPOLL.modify(self.fileno, READ_ONLY)
+                modify(self.fileno, READ)
                 return 0
             else:
                 return 1
         else:
             return 0
 
-    cpdef setWaitForSend(self):
+    def setWaitForSend(self):
         """
         缓存要发送的消息
         """
@@ -308,7 +344,7 @@ cdef class ClientSession:
             self.wait4send = senddata
             del senddata
 
-    cpdef send(self):
+    def send(self):
         """
         发送数据
         """
@@ -324,13 +360,13 @@ cdef class ClientSession:
                 print(ex)
 
         if SEND_QUEUE[self.fileno].empty():
-            EPOLL.modify(self.fileno, READ_ONLY)
+            modify(self.fileno, READ)
 
-    cpdef receive(self):
+    def receive(self):
         """
         接收数据
         """
-        cdef str recbuff = ""
+        recbuff = ""
         try:
             recbuff = self.sock.recv(8192)
         except Exception as ex:
@@ -343,7 +379,7 @@ cdef class ClientSession:
             self.disconnect('client close')
             return 0
 
-        cdef double t = _time.time()
+        t = _time.time()
         self.last_recv_time = t
         # 加入上次未完成解析的数据
         if len(self.temp_recv_buffer) > 0:
@@ -361,13 +397,12 @@ cdef class ClientSession:
                 print(ex)
 
         if not SEND_QUEUE[self.fileno].empty():
-            EPOLL.modify(self.fileno, READ_WRITE)
+            modify(self.fileno, WRITE)
 
 
-cdef class EPSocketServer:
-    cdef public int debug, event_timeout, max_events, fd_lock, max_client
-    cdef public dict server_fd
-    def __init__(self, int maxclient=1900, int eventtimeout=0, int maxevents=5000, int fdlock=0):
+class MXIOLoop(object):
+
+    def __init__(self, maxclient=1900, eventtimeout=0, maxevents=5000, fdlock=0):
         """高性能TCP服务基类
 
         Args:
@@ -381,11 +416,9 @@ cdef class EPSocketServer:
         self.max_events = maxevents
         self.fd_lock = fdlock
         self.max_client = maxclient
-        # self.server_sock = None
         self.server_fd = {}
 
-
-    cpdef setDebug(self, int showdebug):
+    def setDebug(self, showdebug):
         """
         设置调试信息开关
 
@@ -394,8 +427,7 @@ cdef class EPSocketServer:
         """
         self.debug = showdebug
 
-
-    cpdef showDebug(self, str msg):
+    def showDebug(self, msg):
         """
         是否显示调试信息
 
@@ -405,24 +437,26 @@ cdef class EPSocketServer:
         if self.debug:
             print("[D] {0} {1}".format(stamp2time(_time.time()), repr(msg)))
 
-
-    cpdef object addSocket(self, tuple address):
+    def addSocket(self, address):
         """
         添加需要监听的socket参数
 
         Args:
             address (tuple): ('ip', port)
         """
-        global CLIENTS, READ_ONLY
+        global CLIENTS, READ
         sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
         sock.setblocking(0)
-        if _os.name == 'posix':
-            sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+        # if Platform.isWin():
+        sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
         sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
         try:
             sock.bind(address)
             self.showDebug("======= Success bind port:{0} =======".format(address[1]))
-            EPOLL.register(sock.fileno(), READ_ONLY)
+            if Platform.isWin():
+                register(sock.fileno(), READ, sock)
+            else:
+                register(sock.fileno(), READ)
             self.server_fd[sock.fileno()] = (sock, address[1])
             # CLIENTS[address[1]] = []
             return sock
@@ -430,73 +464,22 @@ cdef class EPSocketServer:
             print(u'------- Bind port {0} failed {1} -------'.format(address[1], ex))
             return None
 
-
-    cpdef serverForever(self):
+    def serverForever(self):
         """
         启动服务
         """
-        global EPOLL
-        if not __license_ok():
-            return
-
-        for s in self.server_fd.values():
-            s[0].listen(100)
-
-        if USE_SL:
-            self.showDebug('running in stackless mode.')
+        if Platform.isLinux():
+            self.epollLoop()
         else:
-            self.showDebug('running in gevent mode.')
+            self.selectLoop()
 
-        # file descriptor事件监听
-        cdef double t = _time.time()
-        cdef double last_gc = t
-        cdef double last_lic = t
-        while not IS_EXIT:
-            if USE_SL:
-                _time.sleep(0)
-            else:
-                _gevent.sleep(0)
-
-            try:
-                # 获取事件
-                events = EPOLL.poll(timeout=self.event_timeout, maxevents=self.max_events)
-            except Exception as ex:
-                print(ex)
-                continue
-
-            if len(events) > 0:
-                # gevent 和 stackless 不同模式协程开启
-                if USE_SL:
-                    for fileno, event in events:
-                        try:
-                            _sl.tasklet(self.mainLoop)(fileno, event, self.debug)
-                        except:
-                            pass
-                    _sl.run()
-                else:
-                    _gevent.joinall([_gevent.spawn(self.mainLoop, fileno, event, self.debug) for fileno, event in events])
-
-            self.doSomethingElse()
-
-            t = _time.time()
-            # 资源回收
-            if t - last_gc > 600:
-                _gc.collect()
-                last_gc = _time.time()
-                self.showDebug("gc")
-            # 许可证检查
-            if t - last_lic > 86400:
-                last_lic = _time.time()
-                if not __license_ok():
-                    return
-
-    cpdef doSomethingElse(self):
+    def doSomethingElse(self):
         """
         处理完内核通知后，继续处理其他事件
         """
         pass
 
-    cpdef connect(self, tuple server_object):
+    def connect(self, server_object):
         """
         处理连接请求
 
@@ -513,8 +496,7 @@ cdef class EPSocketServer:
             connection.close()
             self.showDebug("conn: no more {0}".format(address))
 
-
-    cpdef mainLoop(self, int fd, object eve, int debug=0):
+    def epollMainLoop(self, fd, eve, debug=0):
         """
         主循环
 
@@ -525,15 +507,32 @@ cdef class EPSocketServer:
             debug (bool, optional): 是否输出调试信息
         """
         if debug:
-            self.worker(fd, eve)
+            self.epollWorker(fd, eve)
         else:
             try:
-                self.worker(fd, eve)
+                self.epollWorker(fd, eve)
             except Exception as ex:
                 self.showDebug("main loop error:{0}".format(ex.message))
 
+    def selectMainLoop(self, fd, eve, debug=0):
+        """
+        主循环
 
-    cdef worker(self, int fn, object eve):
+        Args:
+            fd (TYPE): file descriptor
+            eve (TYPE): 事件
+            fdlock (bool, optional): 是否加锁
+            debug (bool, optional): 是否输出调试信息
+        """
+        if debug:
+            self.selectWorker(fd, eve)
+        else:
+            try:
+                self.selectWorker(fd, eve)
+            except Exception as ex:
+                self.showDebug("main loop error:{0}".format(ex.message))
+
+    def selectWorker(self, fn, eve):
         """
         事件分类处理
 
@@ -542,35 +541,208 @@ cdef class EPSocketServer:
             eve (TYPE): 事件
         """
         global CLIENTS
-        if 1:
-            # 对方socket非法关闭
-            if eve & _select.EPOLLHUP:
+        # socket状态错误
+        if eve == 'err':
+            if fn in CLIENTS.keys():
+                session = CLIENTS.get(fn)
+                if session is not None:
+                    session.disconnect('socket err')
+                del session
+        # socket 有数据读
+        elif eve == 'in':
+            if fn in self.server_fd.keys():
+                self.connect(self.server_fd.get(fn))
+            else:
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)
                     if session is not None:
-                        session.disconnect('socket hup')
+                        session.receive()
                     del session
-            # socket状态错误
-            elif eve & _select.EPOLLERR:
-                if fn in CLIENTS.keys():
-                    session = CLIENTS.get(fn)
-                    session.disconnect('socket error')
-                    del session
-            # socket 有数据读
-            elif eve & _select.EPOLLIN:
-                if fn in self.server_fd.keys():
-                    self.connect(self.server_fd.get(fn))
-                else:
-                    if fn in CLIENTS.keys():
-                        session = CLIENTS.get(fn)
-                        if session is not None:
-                            session.receive()
-                        del session
-            # socket 可写
-            elif eve & _select.EPOLLOUT:
+        # socket 可写
+        elif eve == 'out':
+            if fn in CLIENTS.keys():
+                session = CLIENTS.get(fn)
+                if session is not None:
+                    if session.enableSend():
+                        session.send()
+                del session
+
+    def epollWorker(self, fn, eve):
+        """
+        事件分类处理
+
+        Args:
+            fn (TYPE): file descriptor
+            eve (TYPE): 事件
+        """
+        global CLIENTS
+        # 对方socket非法关闭
+        if eve & _select.EPOLLHUP:
+            if fn in CLIENTS.keys():
+                session = CLIENTS.get(fn)
+                if session is not None:
+                    session.disconnect('socket hup')
+                del session
+        # socket状态错误
+        elif eve & _select.EPOLLERR:
+            if fn in CLIENTS.keys():
+                session = CLIENTS.get(fn)
+                session.disconnect('socket error')
+                del session
+        # socket 有数据读
+        elif eve & _select.EPOLLIN:
+            if fn in self.server_fd.keys():
+                self.connect(self.server_fd.get(fn))
+            else:
                 if fn in CLIENTS.keys():
                     session = CLIENTS.get(fn)
                     if session is not None:
-                        if session.enableSend():
-                            session.send()
+                        session.receive()
                     del session
+        # socket 可写
+        elif eve & _select.EPOLLOUT:
+            if fn in CLIENTS.keys():
+                session = CLIENTS.get(fn)
+                if session is not None:
+                    if session.enableSend():
+                        session.send()
+                del session
+
+    def epollLoop(self):
+        global IMPL
+        if not __license_ok():
+            return
+
+        for s in self.server_fd.values():
+            s[0].listen(100)
+
+        # file descriptor事件监听
+        t = _time.time()
+        last_gc = t
+        last_lic = t
+        while not IS_EXIT:
+            _gevent.sleep(0)
+
+            try:
+                # 获取事件
+                events = IMPL.poll(timeout=self.event_timeout, maxevents=self.max_events)
+            except Exception as ex:
+                print(ex)
+                continue
+
+            if len(events) > 0:
+                _gevent.joinall([_gevent.spawn(self.epollMainLoop, fileno, event, debug=self.debug)
+                                 for fileno, event in events])
+
+            self.doSomethingElse()
+
+            t = _time.time()
+            # 资源回收
+            if t - last_gc > 600:
+                _gc.collect()
+                last_gc = _time.time()
+                self.showDebug("gc")
+            # 许可证检查
+            if t - last_lic > 86400:
+                last_lic = _time.time()
+                if not __license_ok():
+                    return
+
+    def selectLoop(self):
+        global READ, WRITE
+        if not __license_ok():
+            return
+
+        for s in self.server_fd.values():
+            s[0].listen(100)
+
+        cdef double t = _time.time()
+        cdef double last_gc = t
+        cdef double last_lic = t
+
+        while not IS_EXIT:
+            _gevent.sleep(0)
+
+            wr = [READ[i:i + 500] for i in range(0, len(READ), 500)]
+            ww = [WRITE[i:i + 500] for i in range(0, len(WRITE), 500)]
+            for i in range(len(wr) - len(ww)):
+                ww.append([])
+            l = len(wr)
+            inbuf = []
+            outbuf = []
+            errbuf = []
+            for i in range(l):
+                try:
+                    inb, outb, errb = _select.select(wr[i], ww[i], wr[i], 0)
+                except Exception as ex:
+                    print(ex)
+                    # with open('select_error.log', 'a') as f:
+                    #     f.writelines(['======{0}======='.format(stamp2time(_time.time())), ex, '\r\n'])
+                    continue
+                inbuf.extend(inb)
+                outbuf.extend(outb)
+                errbuf.extend(errb)
+                del inb, outb, errb
+            del wr, ww
+            # inbuf, outbuf, errbuf = select.select(READ, WRITE, READ, 10)
+
+            if len(errbuf) > 0:
+                threads = []
+                for soc in errbuf:
+                    try:
+                        inbuf.remove(soc)
+                    except:
+                        pass
+                    try:
+                        outbuf.remove(soc)
+                    except:
+                        pass
+                    try:
+                        threads.append(_gevent.spawn(self.selectMainLoop, soc.fileno(), 'err', debug=self.debug))
+                    except:
+                        pass
+                _gevent.joinall(threads)
+                del threads
+
+            threads = []
+            if len(inbuf) > 0:
+                threads.extend([_gevent.spawn(self.selectMainLoop, soc.fileno(), 'in', debug=self.debug) for soc in inbuf])
+                # threads = []
+                # for soc in inbuf:
+                #     try:
+                #         threads.append(_gevent.spawn(self.main_loop, soc.fileno(), 'in', debug=self.debug))
+                #     except:
+                #         pass
+
+            if len(outbuf) > 0:
+                threads.extend([_gevent.spawn(self.selectMainLoop, soc.fileno(), 'out', debug=self.debug) for soc in outbuf])
+                # threads = []
+                # for soc in outbuf:
+                #     try:
+                #         threads.append(_gevent.spawn(self.main_loop, soc.fileno(), 'out', debug=self.debug))
+                #     except:
+                #         pass
+            del inbuf, outbuf, errbuf
+
+            thread = [threads[i:i + self.max_events] for i in range(0, len(threads), self.max_events)]
+            for x in thread:
+                _gevent.joinall(x)
+            # _gevent.joinall(threads)
+            del threads
+            del thread
+
+            # _gevent.sleep(0.1)
+
+            self.doSomethingElse()
+
+            # 资源回收
+            t = _time.time()
+            if t - last_gc > 600:
+                _gc.collect()
+                last_gc = t
+                self.showDebug("gc")
+            # 许可证检查
+            if t - last_lic > 86400:
+                last_lic = t
+                if not __license_ok():
+                    return

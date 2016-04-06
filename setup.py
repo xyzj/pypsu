@@ -22,14 +22,14 @@ extensions = [
         include_dirs = [],
         libraries = [],
         library_dirs = []),
-    Extension("mxhpss_nt", ["mxhpss_nt.pyx"],
-        include_dirs = [],
-        libraries = [],
-        library_dirs = []),
-    Extension("mxsp", ["mxsp.pyx"],
-        include_dirs = [],
-        libraries = [],
-        library_dirs = []),
+    # Extension("mxhpss_nt", ["mxhpss_nt.pyx"],
+    #     include_dirs = [],
+    #     libraries = [],
+    #     library_dirs = []),
+    # Extension("mxsp", ["mxsp.pyx"],
+    #     include_dirs = [],
+    #     libraries = [],
+    #     library_dirs = []),
 ]
 
 setup(

@@ -197,6 +197,14 @@ cpdef str formatLog(str log_txt, str dateformat='%Y-%m-%d %H:%M:%S'):
     return a
 
 
+cpdef int checkPort(int port):
+    if port and port.isdigit():
+        iport = int(port)
+        if 0 < iport < 65536:
+            return 1
+    return 0
+
+
 cpdef str showOurHistory():
     cdef str oh = ''
     if _os.path.isfile("OURHISTORY"):
@@ -737,7 +745,7 @@ cpdef str stamp2time(double stamp, int fromcsharp=0, str format_type='%Y-%m-%d %
         return _time.strftime(format_type, _time.localtime(stamp))
 
 
-cpdef long ip2int(str strip, int usehostorder=0):
+def ip2int(strip, usehostorder=0):
     """Summary
 
     Args:
@@ -756,7 +764,7 @@ cpdef long ip2int(str strip, int usehostorder=0):
         return -1
 
 
-cpdef str ip2string(long intip, int usehostorder=0):
+def ip2string(intip, usehostorder=0):
     """Summary
 
     Args:
@@ -773,6 +781,44 @@ cpdef str ip2string(long intip, int usehostorder=0):
             return _socket.inet_ntoa(_struct.pack('I', _socket.ntohl(intip)))
     except:
         return ''
+
+# 
+# cpdef long ip2int(str strip, int usehostorder=0):
+#     """Summary
+# 
+#     Args:
+#         strip (TYPE): Description
+#         usehostorder (bool, optional): Description
+# 
+#     Returns:
+#         TYPE: Description
+#     """
+#     try:
+#         if usehostorder > 0:
+#             return long(_socket.htonl(_struct.unpack("!L", _socket.inet_aton(strip))[0]))
+#         else:
+#             return long(_socket.htonl(_struct.unpack("I", _socket.inet_aton(strip))[0]))
+#     except:
+#         return -1
+# 
+# 
+# cpdef str ip2string(long intip, int usehostorder=0):
+#     """Summary
+# 
+#     Args:
+#         intip (TYPE): Description
+#         usehostorder (bool, optional): Description
+# 
+#     Returns:
+#         TYPE: Description
+#     """
+#     try:
+#         if usehostorder > 0:
+#             return _socket.inet_ntoa(_struct.pack('!L', _socket.ntohl(intip)))
+#         else:
+#             return _socket.inet_ntoa(_struct.pack('I', _socket.ntohl(intip)))
+#     except:
+#         return ''
 
 
 cpdef str convertProtobuf(object pb2msg):

@@ -11,7 +11,9 @@ import json as _json
 import zlib as _zlib
 import time as _time
 import base64 as _base64
-
+import sys as _sys
+_sys.path.append('/usr/lib64/python2.7/site-packages/')
+_sys.path.append('/usr/lib/python2.7/site-packages/')
 
 cpdef str hashMD5(str sargs):
     """Summary
