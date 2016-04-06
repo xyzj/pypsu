@@ -7,41 +7,15 @@ __doc__ = 'High-performance socket service'
 import gevent as _gevent
 import socket as _socket
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform
-from mxhpss_comm import loadLicense
+from mxhpss_comm import loadLicense, IMPL, READ, WRITE, register, unregister, modify, CLIENTS
 import select as _select
 import time as _time
 import gc as _gc
 import os as _os
 
-# Constants from the epoll module
-_EPOLLIN = 0x001
-_EPOLLPRI = 0x002
-_EPOLLOUT = 0x004
-_EPOLLERR = 0x008
-_EPOLLHUP = 0x010
-_EPOLLRDHUP = 0x2000
-_EPOLLONESHOT = (1 << 30)
-_EPOLLET = (1 << 31)
-
-# Our events map exactly to the epoll events
-NONE = 0
-
 IS_EXIT = 0
-# 客户端集合{fileno, ClientSession}
-CLIENTS = {}
 # 发送队列{fd, SendData}
 SEND_QUEUE = {}
-# epoll实例
-if Platform.isLinux():
-    IMPL = _select.epoll()
-    ERROR = _EPOLLERR | _EPOLLHUP
-    READ = _EPOLLIN | ERROR
-    WRITE = _EPOLLOUT | READ
-    WRITE_ONLY = _EPOLLOUT | ERROR
-else:
-    IMPL = None
-    READ = []
-    WRITE = []
 
 
 def __license_ok():
@@ -57,61 +31,6 @@ def __license_ok():
         return 0
     else:
         return 1
-
-
-def register(fileno, objwatch, ssock=None):
-    global READ, WRITE, CLIENTS, IMPL
-    if Platform.isLinux():
-        IMPL.register(fileno, objwatch)
-    else:
-        if ssock is not None:
-            READ.append(ssock)
-        else:
-            sock = CLIENTS.get(fileno)
-            if sock is not None:
-                if objwatch is READ:
-                    if sock.sock not in READ:
-                        READ.append(sock.sock)
-                elif objwatch is WRITE:
-                    if sock.sock not in WRITE:
-                        WRITE.append(sock.sock)
-
-
-def modify(fileno, objwatch):
-    global READ, WRITE, CLIENTS, IMPL
-    if Platform.isLinux():
-        IMPL.modify(fileno, objwatch)
-    else:
-        sock = CLIENTS.get(fileno)
-        if sock is not None:
-            if objwatch is READ:
-                try:
-                    WRITE.remove(sock.sock)
-                except:
-                    pass
-            elif objwatch is WRITE:
-                if sock.sock not in WRITE:
-                    WRITE.append(sock.sock)
-
-
-def unregister(fileno):
-    global READ, WRITE, CLIENTS, IMPL
-    if Platform.isLinux():
-        try:
-            IMPL.unregister(fileno)
-        except:
-            pass
-    else:
-        sock = CLIENTS.get(fileno)
-        if sock is not None:
-            try:
-                READ.remove(sock.sock)
-            except:
-                pass
-            try:
-                WRITE.remove(sock.sock)
-            except:
-                pass
 
 
 class ClientSession(object):

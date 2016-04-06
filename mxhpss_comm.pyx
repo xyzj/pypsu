@@ -11,9 +11,92 @@ import json as _json
 import zlib as _zlib
 import time as _time
 import base64 as _base64
+import select as _select
+from mxpsu import Platform
 import sys as _sys
 _sys.path.append('/usr/lib64/python2.7/site-packages/')
 _sys.path.append('/usr/lib/python2.7/site-packages/')
+
+# Constants from the epoll module
+_EPOLLIN = 0x001
+_EPOLLPRI = 0x002
+_EPOLLOUT = 0x004
+_EPOLLERR = 0x008
+_EPOLLHUP = 0x010
+_EPOLLRDHUP = 0x2000
+_EPOLLONESHOT = (1 << 30)
+_EPOLLET = (1 << 31)
+
+# epoll实例
+if Platform.isLinux():
+    IMPL = _select.epoll()
+    ERROR = _EPOLLERR | _EPOLLHUP
+    READ = _EPOLLIN | ERROR
+    WRITE = _EPOLLOUT | READ
+    WRITE_ONLY = _EPOLLOUT | ERROR
+else:
+    IMPL = None
+    READ = []
+    WRITE = []
+
+# 客户端集合{fileno, ClientSession}
+CLIENTS = {}
+
+
+def register(fileno, objwatch, ssock=None):
+    global READ, WRITE, CLIENTS, IMPL
+    if Platform.isLinux():
+        IMPL.register(fileno, objwatch)
+    else:
+        if ssock is not None:
+            READ.append(ssock)
+        else:
+            sock = CLIENTS.get(fileno)
+            if sock is not None:
+                if objwatch is READ:
+                    if sock.sock not in READ:
+                        READ.append(sock.sock)
+                elif objwatch is WRITE:
+                    if sock.sock not in WRITE:
+                        WRITE.append(sock.sock)
+
+
+def modify(fileno, objwatch):
+    global READ, WRITE, CLIENTS, IMPL
+    if Platform.isLinux():
+        IMPL.modify(fileno, objwatch)
+    else:
+        sock = CLIENTS.get(fileno)
+        if sock is not None:
+            if objwatch is READ:
+                try:
+                    WRITE.remove(sock.sock)
+                except:
+                    pass
+            elif objwatch is WRITE:
+                if sock.sock not in WRITE:
+                    WRITE.append(sock.sock)
+
+
+def unregister(fileno):
+    global READ, WRITE, CLIENTS, IMPL
+    if Platform.isLinux():
+        try:
+            IMPL.unregister(fileno)
+        except:
+            pass
+    else:
+        sock = CLIENTS.get(fileno)
+        if sock is not None:
+            try:
+                READ.remove(sock.sock)
+            except:
+                pass
+            try:
+                WRITE.remove(sock.sock)
+            except:
+                pass
+
 
 cpdef str hashMD5(str sargs):
     """Summary
