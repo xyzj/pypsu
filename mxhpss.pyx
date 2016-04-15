@@ -7,8 +7,7 @@ __doc__ = 'High-performance socket service'
 import gevent as _gevent
 import socket as _socket
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform
-from mxhpss_comm import loadLicense, IMPL, READ, WRITE, register, unregister, modify, CLIENTS
-import select as _select
+from mxhpss_comm import loadLicense, IMPL, READ, WRITE, register, unregister, modify, CLIENTS, _EPOLLIN, _EPOLLOUT, _EPOLLHUP, _EPOLLERR
 import time as _time
 import gc as _gc
 import os as _os
@@ -496,20 +495,20 @@ class MXIOLoop(object):
         """
         global CLIENTS
         # 对方socket非法关闭
-        if eve & _select.EPOLLHUP:
+        if eve & _EPOLLHUP:
             if fn in CLIENTS.keys():
                 session = CLIENTS.get(fn)
                 if session is not None:
                     session.disconnect('socket hup')
                 del session
         # socket状态错误
-        elif eve & _select.EPOLLERR:
+        elif eve & _EPOLLERR:
             if fn in CLIENTS.keys():
                 session = CLIENTS.get(fn)
                 session.disconnect('socket error')
                 del session
         # socket 有数据读
-        elif eve & _select.EPOLLIN:
+        elif eve & _EPOLLIN:
             if fn in self.server_fd.keys():
                 self.connect(self.server_fd.get(fn))
             else:
@@ -519,7 +518,7 @@ class MXIOLoop(object):
                         session.receive()
                     del session
         # socket 可写
-        elif eve & _select.EPOLLOUT:
+        elif eve & _EPOLLOUT:
             if fn in CLIENTS.keys():
                 session = CLIENTS.get(fn)
                 if session is not None:
@@ -544,14 +543,16 @@ class MXIOLoop(object):
 
             try:
                 # 获取事件
-                events = IMPL.poll(timeout=self.event_timeout, maxevents=self.max_events)
+                poll_list = IMPL.poll(timeout=self.event_timeout, maxevents=self.max_events)
             except Exception as ex:
                 print(ex)
                 continue
 
-            if len(events) > 0:
-                _gevent.joinall([_gevent.spawn(self.epollMainLoop, fileno, event, debug=self.debug)
-                                 for fileno, event in events])
+            if len(poll_list) > 0:
+                _gevent.joinall([_gevent.spawn(self.epollMainLoop,
+                                               fileno,
+                                               event,
+                                               debug=self.debug) for fileno, event in poll_list])
 
             self.doSomethingElse()
 
@@ -559,40 +560,43 @@ class MXIOLoop(object):
             # 资源回收
             if t - last_gc > 600:
                 _gc.collect()
-                last_gc = _time.time()
+                last_gc = t
                 self.showDebug("gc")
             # 许可证检查
             if t - last_lic > 86400:
-                last_lic = _time.time()
+                last_lic = t
                 if not __license_ok():
                     return
 
     def selectLoop(self):
-        global READ, WRITE
+        global READ, WRITE, IMPL
         if not __license_ok():
             return
 
         for s in self.server_fd.values():
             s[0].listen(100)
 
-        cdef double t = _time.time()
-        cdef double last_gc = t
-        cdef double last_lic = t
+        t = _time.time()
+        last_gc = t
+        last_lic = t
 
         while not IS_EXIT:
             _gevent.sleep(0)
 
-            wr = [READ[i:i + 500] for i in range(0, len(READ), 500)]
-            ww = [WRITE[i:i + 500] for i in range(0, len(WRITE), 500)]
+            read_list = list(READ)
+            write_list = list(WRITE)
+            wr = [read_list[i:i + 500] for i in range(0, len(read_list), 500)]
+            ww = [write_list[i:i + 500] for i in range(0, len(write_list), 500)]
             for i in range(len(wr) - len(ww)):
                 ww.append([])
             l = len(wr)
             inbuf = []
             outbuf = []
             errbuf = []
+
             for i in range(l):
                 try:
-                    inb, outb, errb = _select.select(wr[i], ww[i], wr[i], 0)
+                    inb, outb, errb = IMPL(wr[i], ww[i], wr[i], 0)
                 except Exception as ex:
                     print(ex)
                     # with open('select_error.log', 'a') as f:
@@ -602,8 +606,7 @@ class MXIOLoop(object):
                 outbuf.extend(outb)
                 errbuf.extend(errb)
                 del inb, outb, errb
-            del wr, ww
-            # inbuf, outbuf, errbuf = select.select(READ, WRITE, READ, 10)
+            del wr, ww, read_list, write_list
 
             if len(errbuf) > 0:
                 threads = []
@@ -617,7 +620,10 @@ class MXIOLoop(object):
                     except:
                         pass
                     try:
-                        threads.append(_gevent.spawn(self.selectMainLoop, soc.fileno(), 'err', debug=self.debug))
+                        threads.append(_gevent.spawn(self.selectMainLoop,
+                                                     soc.fileno(),
+                                                     'err',
+                                                     debug=self.debug))
                     except:
                         pass
                 _gevent.joinall(threads)
@@ -625,25 +631,21 @@ class MXIOLoop(object):
 
             threads = []
             if len(inbuf) > 0:
-                threads.extend([_gevent.spawn(self.selectMainLoop, soc.fileno(), 'in', debug=self.debug) for soc in inbuf])
-                # threads = []
-                # for soc in inbuf:
-                #     try:
-                #         threads.append(_gevent.spawn(self.main_loop, soc.fileno(), 'in', debug=self.debug))
-                #     except:
-                #         pass
+                threads.extend([_gevent.spawn(self.selectMainLoop,
+                                              soc.fileno(),
+                                              'in',
+                                              debug=self.debug) for soc in inbuf])
 
             if len(outbuf) > 0:
-                threads.extend([_gevent.spawn(self.selectMainLoop, soc.fileno(), 'out', debug=self.debug) for soc in outbuf])
-                # threads = []
-                # for soc in outbuf:
-                #     try:
-                #         threads.append(_gevent.spawn(self.main_loop, soc.fileno(), 'out', debug=self.debug))
-                #     except:
-                #         pass
+                threads.extend([_gevent.spawn(self.selectMainLoop,
+                                              soc.fileno(),
+                                              'out',
+                                              debug=self.debug) for soc in outbuf])
+                                              
             del inbuf, outbuf, errbuf
 
-            thread = [threads[i:i + self.max_events] for i in range(0, len(threads), self.max_events)]
+            thread = [threads[i:i + self.max_events]
+                      for i in range(0, len(threads), self.max_events)]
             for x in thread:
                 _gevent.joinall(x)
             # _gevent.joinall(threads)

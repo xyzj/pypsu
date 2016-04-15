@@ -30,14 +30,14 @@ _EPOLLET = (1 << 31)
 # epoll实例
 if Platform.isLinux():
     IMPL = _select.epoll()
-    ERROR = _EPOLLERR | _EPOLLHUP
-    READ = _EPOLLIN | ERROR
+    _ERROR = _EPOLLERR | _EPOLLHUP
+    READ = _EPOLLIN | _ERROR
     WRITE = _EPOLLOUT | READ
-    WRITE_ONLY = _EPOLLOUT | ERROR
+    WRITE_ONLY = _EPOLLOUT | _ERROR
 else:
-    IMPL = None
-    READ = []
-    WRITE = []
+    IMPL = _select.select
+    READ = set()
+    WRITE = set()
 
 # 客户端集合{fileno, ClientSession}
 CLIENTS = {}
@@ -49,16 +49,15 @@ def register(fileno, objwatch, ssock=None):
         IMPL.register(fileno, objwatch)
     else:
         if ssock is not None:
-            READ.append(ssock)
+            READ.add(ssock)
         else:
             sock = CLIENTS.get(fileno)
             if sock is not None:
                 if objwatch is READ:
-                    if sock.sock not in READ:
-                        READ.append(sock.sock)
+                    READ.add(sock.sock)
                 elif objwatch is WRITE:
-                    if sock.sock not in WRITE:
-                        WRITE.append(sock.sock)
+                    READ.add(sock.sock)
+                    WRITE.add(sock.sock)
 
 
 def modify(fileno, objwatch):
@@ -74,8 +73,7 @@ def modify(fileno, objwatch):
                 except:
                     pass
             elif objwatch is WRITE:
-                if sock.sock not in WRITE:
-                    WRITE.append(sock.sock)
+                WRITE.add(sock.sock)
 
 
 def unregister(fileno):
