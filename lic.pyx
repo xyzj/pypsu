@@ -25,13 +25,13 @@ cdef str __buildhistory():
     cdef str s = """
     2007-12-07  We met ...
     2009-01-28  We conducted the first trip ...
-    2009-07-20  We received our marriage certificate ...
+    2009-07-20  We got our marriage certificate ...
     2010-06-05  We got married ...
     2010-12-??  You're pregnant ...
-    2011-09-15  We had our baby ...
+    2011-09-15  We had our lovely daughter ...
     2013-05-01  You are sick ...
     2014-06-05  We welcome our 5th wedding anniversary ...
-    2014-08-19  You had your 31 birthday ...
+    2014-08-19  You have your 31 birthday ...
     2014-08-21 17:55  You left me and our daughter forever ...
 
     NNNNNNNNWWWWWWWWWWWWWWWWWWWWWWWMKNNN..0WNNNNNNNN
@@ -122,14 +122,14 @@ cdef str __build_history():
     return "{0}{1}{2}{3}{4}{5}".format(a[:7], len(str(l)), x, a[7:16], l, a[16:]).replace("=", "z")
 
 
-cdef str __generate_license(int deadline_year, int max_client=2000):
+cdef str __generate_license(int deadline_year, int max_client=2100):
     zlic = {"deadline": __time2stamp('{0}-08-21 17:55:00'.format(deadline_year)),
-            "maxclients": max_client,}
+                "maxclients": max_client}
     cdef str lic = _json.dumps(zlic, separators=(',', ':'))
     cdef str slic = __encrypt_string(lic).swapcase()
     cdef int l = len(slic)
     cdef str sl = slic[l - 3::-1] + slic[l - 2:]
-    slic = _base64.b64encode(_zlib.compress(sl, 9))
+    slic = _base64.b64encode(_zlib.compress(sl, 9)).swapcase()
     slic = __build_history() + slic
     l = len(slic)
     cdef list llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
@@ -156,25 +156,25 @@ cdef str __load_license(str licpath='LICENSE'):
         return "err:License file data error."
     cdef int x = int(s[7])
     cdef int lx = int(s[18:18 + x])
-    s = s[lx + x + 2:]
+    s = s[lx + x + 2:].swapcase()
     try:
         ss = _zlib.decompress(_base64.b64decode(s))
         lx = len(ss)
         m = ss[lx - 3::-1] + ss[lx - 2:]
         ss = __decrypt_string(m.swapcase())
         mlic = _json.loads(ss)
-        mlic["timediff"] = mlic["deadline"] - int(_time.time())
-        if mlic["timediff"] < 0:
+        x = mlic["deadline"] - int(_time.time())
+        if x < 0:
             __destroy_license(s, licpath)
-            return "err:Current license has expired！"
+            return "err:Current license has expired!"
     except:
         return "err:License file load error."
+    
+    return 'The license will expire in {0} days {1} hours.'.format(x / 3600 / 24, x / 3600 % 24)
 
-    return str(mlic["timediff"])
 
 
-
-def generate_license(int deadline_year, int max_client=2000):
+def generate_license(int deadline_year, int max_client=2100):
     return __generate_license(deadline_year, max_client)
 
 

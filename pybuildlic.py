@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import time
-from pymxlib import time2stamp
+from mxpsu import time2stamp
 from optparse import OptionParser
-import mxlic as lic
+import lic
 
 if __name__ == "__main__":
     usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage)
     parser.add_option("-d", "--deadline", dest="deadline",
                       help="Use format yyyy", metavar="Datetime")
-    parser.add_option("-c", "--maxclient", dest="maxclient", default=2000,
+    parser.add_option("-c", "--maxclient", dest="maxclient", default=2100,
                       type="int", help="Max number of data client can be connect", metavar="number")
 
     (options, args) = parser.parse_args()

@@ -1,5 +1,6 @@
 #!/bin/bash
-
+cp -vf mxhpss.py mxhpss.pyx
+cp -vf mxsp.py mxsp.pyx
 python setup.py build_ext -if
 
 #sudo cp -vf /tmp/mx*.so /usr/lib/python2.7/site-packages/

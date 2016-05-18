@@ -3,7 +3,7 @@
 
 import os
 from optparse import OptionParser
-import mxlic as lic
+import lic
 
 
 if __name__ == "__main__":

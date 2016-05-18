@@ -153,21 +153,21 @@ cdef str __load_license(str licpath='LICENSE'):
         return "err:License file data error."
     cdef int x = int(s[7])
     cdef int lx = int(s[18:18 + x])
-    s = s[lx + x + 2:]
+    s = s[lx + x + 2:].swapcase()
     try:
         ss = _zlib.decompress(_base64.b64decode(s))
         lx = len(ss)
         m = ss[lx - 3::-1] + ss[lx - 2:]
         ss = __decrypt_string(m.swapcase())
         mlic = _json.loads(ss)
-        mlic["timediff"] = mlic["deadline"] - int(_time.time())
-        if mlic["timediff"] < 0:
+        x = mlic["deadline"] - int(_time.time())
+        if x < 0:
             __destroy_license(s, licpath)
-            return "err:Current license has expired！"
+            return "err:Current license has expired!"
     except:
         return "err:License file load error."
 
-    return str(mlic["timediff"])
+    return 'The license will expire in {0} days {1} hours.'.format(x / 3600 / 24, x / 3600 % 24)
 
 
 cpdef str loadLicense(str licpath='LICENSE'):
