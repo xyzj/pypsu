@@ -7,14 +7,42 @@ __doc__ = 'High-performance socket service'
 import gevent as _gevent
 import socket as _socket
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform
-from mxhpss_comm import loadLicense, IMPL, READ, WRITE, register, unregister, modify, CLIENTS, _EPOLLIN, _EPOLLOUT, _EPOLLHUP, _EPOLLERR
-import time as _time
+from mxhpss_comm import _time, _sys, loadLicense, IMPL, READ, WRITE, register, unregister, modify, CLIENTS, _EPOLLIN, _EPOLLOUT, _EPOLLHUP, _EPOLLERR
 import gc as _gc
 import os as _os
 
 IS_EXIT = 0
 # 发送队列{fd, SendData}
 SEND_QUEUE = {}
+
+
+def create_daemon():
+    try:
+        if _os.fork() > 0:
+            _os._exit(0)
+    except OSError, error:
+        print 'fork #1 failed: %d (%s)' % (error.errno, error.strerror)
+        _os._exit(1)
+    # _os.chdir('/')
+    _os.setsid()
+    _os.umask(0)
+    try:
+        pid = _os.fork()
+        if pid > 0:
+            print 'Daemon PID %d' % pid
+            _os._exit(0)
+    except OSError, error:
+        print 'fork #2 failed: %d (%s)' % (error.errno, error.strerror)
+        _os._exit(1)
+    # 重定向标准IO
+    _sys.stdout.flush()
+    _sys.stderr.flush()
+    si = file("/dev/null", 'r')
+    so = file("/dev/null", 'a+')
+    se = file("/dev/null", 'a+', 0)
+    _os.dup2(si.fileno(), _sys.stdin.fileno())
+    _os.dup2(so.fileno(), _sys.stdout.fileno())
+    _os.dup2(se.fileno(), _sys.stderr.fileno())
 
 
 def __license_ok():

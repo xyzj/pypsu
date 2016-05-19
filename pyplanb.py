@@ -3,7 +3,7 @@
 import argparse as _argparse
 import os as _os
 import sys as _sys
-from mxhpss import MXIOLoop
+from mxhpss import MXIOLoop, create_daemon
 
 __author__ = 'minamoto'
 __ver__ = '0.9'
@@ -30,38 +30,36 @@ def start_planb(results):
     ss.addSocket(('0.0.0.0', results.serviceport))
     ss.serverForever()
 
-
-def create_daemon(results):
-    try:
-        if _os.fork() > 0:
-            _os._exit(0)
-    except OSError, error:
-        print 'fork #1 failed: %d (%s)' % (error.errno, error.strerror)
-        _os._exit(1)
-    # _os.chdir('/')
-    _os.setsid()
-    _os.umask(0)
-    try:
-        pid = _os.fork()
-        if pid > 0:
-            print 'Daemon PID %d' % pid
-            _os._exit(0)
-    except OSError, error:
-        print 'fork #2 failed: %d (%s)' % (error.errno, error.strerror)
-        _os._exit(1)
-    # 重定向标准IO
-    _sys.stdout.flush()
-    _sys.stderr.flush()
-    si = file("/dev/null", 'r')
-    so = file("/dev/null", 'a+')
-    se = file("/dev/null", 'a+', 0)
-    _os.dup2(si.fileno(), _sys.stdin.fileno())
-    _os.dup2(so.fileno(), _sys.stdout.fileno())
-    _os.dup2(se.fileno(), _sys.stderr.fileno())
-
-    # 在子进程中执行代码
-    start_planb(results)
-
+# def create_daemon(results):
+#     try:
+#         if _os.fork() > 0:
+#             _os._exit(0)
+#     except OSError, error:
+#         print 'fork #1 failed: %d (%s)' % (error.errno, error.strerror)
+#         _os._exit(1)
+#     # _os.chdir('/')
+#     _os.setsid()
+#     _os.umask(0)
+#     try:
+#         pid = _os.fork()
+#         if pid > 0:
+#             print 'Daemon PID %d' % pid
+#             _os._exit(0)
+#     except OSError, error:
+#         print 'fork #2 failed: %d (%s)' % (error.errno, error.strerror)
+#         _os._exit(1)
+#     # 重定向标准IO
+#     _sys.stdout.flush()
+#     _sys.stderr.flush()
+#     si = file("/dev/null", 'r')
+#     so = file("/dev/null", 'a+')
+#     se = file("/dev/null", 'a+', 0)
+#     _os.dup2(si.fileno(), _sys.stdin.fileno())
+#     _os.dup2(so.fileno(), _sys.stdout.fileno())
+#     _os.dup2(se.fileno(), _sys.stderr.fileno())
+# 
+#     # 在子进程中执行代码
+#     # start_planb(results)
 
 if __name__ == "__main__":
     if "--history" in _sys.argv:
@@ -99,7 +97,6 @@ if __name__ == "__main__":
 
     results = arg.parse_args()
 
-    if results.nodaemon:
-        start_planb(results)
-    else:
-        create_daemon(results)
+    if not results.nodaemon:
+        create_daemon()
+    start_planb(results)

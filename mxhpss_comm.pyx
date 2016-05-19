@@ -42,7 +42,6 @@ else:
 # 客户端集合{fileno, ClientSession}
 CLIENTS = {}
 
-
 def register(fileno, objwatch, ssock=None):
     global READ, WRITE, CLIENTS, IMPL
     if Platform.isLinux():
