@@ -24,5 +24,5 @@ exe = EXE(pyz,
           name='pb',
           debug=False,
           strip=False,
-          upx=False,
+          upx=True,
           console=True )

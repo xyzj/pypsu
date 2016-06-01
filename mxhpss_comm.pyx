@@ -45,7 +45,10 @@ CLIENTS = {}
 def register(fileno, objwatch, ssock=None):
     global READ, WRITE, CLIENTS, IMPL
     if Platform.isLinux():
-        IMPL.register(fileno, objwatch)
+        try:
+            IMPL.register(fileno, objwatch)
+        except:
+            return
     else:
         if ssock is not None:
             READ.add(ssock)
@@ -62,7 +65,10 @@ def register(fileno, objwatch, ssock=None):
 def modify(fileno, objwatch):
     global READ, WRITE, CLIENTS, IMPL
     if Platform.isLinux():
-        IMPL.modify(fileno, objwatch)
+        try:
+            IMPL.modify(fileno, objwatch)
+        except:
+            return
     else:
         sock = CLIENTS.get(fileno)
         if sock is not None:

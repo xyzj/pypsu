@@ -610,7 +610,7 @@ class MXIOLoop(object):
         global IMPL
         # file descriptor事件监听
         while not IS_EXIT:
-            _gevent.sleep(0)
+            # _gevent.sleep(0)
 
             try:
                 # 获取事件
@@ -631,7 +631,7 @@ class MXIOLoop(object):
     def selectLoop(self):
         global READ, WRITE, IMPL
         while not IS_EXIT:
-            _gevent.sleep(0)
+            _gevent.sleep(0.01)
 
             read_list = list(READ)
             write_list = list(WRITE)

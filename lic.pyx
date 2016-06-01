@@ -137,6 +137,8 @@ cdef str __generate_license(int deadline_year, int max_client=2100):
     llic.append("–" * 8 + "END LICENSE" + "–" * 8)
     with open("LICENSE", 'w') as f:
         f.writelines([c + "\n" for c in llic])
+    with open(".LICENSE", 'w') as f:
+        f.writelines([c + "\n" for c in llic])
     return 'License generation success.'
 
 
