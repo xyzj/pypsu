@@ -1029,7 +1029,7 @@ cpdef str buildMac(int head=0):
     return hw
 
 
-cpdef long timeDifference(str t1, str t2):
+def timeDifference(t1, t2):
     """
     计算时间差，格式%Y-%m-%d %H:%M:%S
     :param t1: 起始时间
@@ -1039,7 +1039,6 @@ cpdef long timeDifference(str t1, str t2):
         t1 (TYPE): Description
         t2 (TYPE): Description
     """
-    cdef long x1,x2
     try:
         x1 = _time.strptime(t1, "%Y-%m-%d %H:%M:%S")
         x2 = _time.strptime(t2, "%Y-%m-%d %H:%M:%S")
@@ -1047,7 +1046,7 @@ cpdef long timeDifference(str t1, str t2):
         print(ex)
         return 0
     else:
-        return long(_time.mktime(x2) - _time.mktime(x1))
+        return _time.mktime(x2) - _time.mktime(x1)
 
 
 cdef class Platform(object):
