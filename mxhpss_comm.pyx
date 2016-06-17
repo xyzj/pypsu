@@ -5,9 +5,8 @@ __ver__ = '0.1'
 __doc__ = 'High-performance socket service common module'
 
 from Crypto.Cipher import AES as _AES
-from Crypto.Hash import MD5 as _MD5
+# from Crypto.Hash import MD5 as _MD5
 import random as _random
-import json as _json
 import zlib as _zlib
 import time as _time
 import base64 as _base64
@@ -101,18 +100,18 @@ def unregister(fileno):
                 pass
 
 
-cpdef str hashMD5(str sargs):
-    """Summary
-
-    Args:
-        sargs (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    m = _MD5.new()
-    m.update(sargs)
-    return m.hexdigest()
+# cpdef str hashMD5(str sargs):
+#     """Summary
+# 
+#     Args:
+#         sargs (TYPE): Description
+# 
+#     Returns:
+#         TYPE: Description
+#     """
+#     m = _MD5.new()
+#     m.update(sargs)
+#     return m.hexdigest()
 
 
 cdef __destroy_license(str strlic, str licpath='LICENSE'):
@@ -164,7 +163,11 @@ cdef str __load_license(str licpath='LICENSE'):
         lx = len(ss)
         m = ss[lx - 3::-1] + ss[lx - 2:]
         ss = __decrypt_string(m.swapcase())
-        mlic = _json.loads(ss)
+        ss = ss.replace('{','').replace('}','')
+        lss = ss.split(',')
+        mlic = {}
+        for j in lss:
+            mlic[j.split(':')[0]] = int(j.split(':')[1])
         x = mlic["deadline"] - int(_time.time())
         if x < 0:
             __destroy_license(s, licpath)

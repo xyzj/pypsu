@@ -9,7 +9,6 @@ import base64 as _base64
 import zlib as _zlib
 import time as _time
 import random as _random
-import json as _json
 
 
 cdef int __time2stamp(str timestr, int tocsharp=0, str format_type='%Y-%m-%d %H:%M:%S'):
@@ -125,7 +124,8 @@ cdef str __build_history():
 cdef str __generate_license(int deadline_year, int max_client=2100):
     zlic = {"deadline": __time2stamp('{0}-08-21 17:55:00'.format(deadline_year)),
                 "maxclients": max_client}
-    cdef str lic = _json.dumps(zlic, separators=(',', ':'))
+    # cdef str lic = _json.dumps(zlic, separators=(',', ':'))
+    cdef str lic = str(zlic).replace(' ','').replace("'", "")
     cdef str slic = __encrypt_string(lic).swapcase()
     cdef int l = len(slic)
     cdef str sl = slic[l - 3::-1] + slic[l - 2:]
@@ -164,7 +164,12 @@ cdef str __load_license(str licpath='LICENSE'):
         lx = len(ss)
         m = ss[lx - 3::-1] + ss[lx - 2:]
         ss = __decrypt_string(m.swapcase())
-        mlic = _json.loads(ss)
+        ss = ss.replace('{','').replace('}','')
+        lss = ss.split(',')
+        mlic = {}
+        for j in lss:
+            mlic[j.split(':')[0]] = int(j.split(':')[1])
+        # mlic = _json.loads(ss)
         x = mlic["deadline"] - int(_time.time())
         if x < 0:
             __destroy_license(s, licpath)
