@@ -19,8 +19,13 @@ LOGLEVEL = {0: 'NOTSET', 10: 'DEBUG', 20: 'INFO', 30: 'WARN', 40: 'ERROR', 50: '
 
 class Logger():
 
-    def __init__(self, file_name=None, log_level=10, max_size=0, roll_num=10, roll_midnight=True):
-        self.file_max_size = max_size
+    def __init__(self,
+                 file_name=None,
+                 log_level=10,
+                 file_size=1024 * 1024 * 20,
+                 roll_num=19,
+                 roll_midnight=True):
+        self.file_max_size = file_size
         self.buffer_lock = threading.Lock()
         self.buffer = {}  # id => line
         self.buffer_size = 1024
@@ -98,10 +103,26 @@ class Logger():
         if roll_midnight:
             today = datetime.today()
             yesterday = today + timedelta(days=-1)
-            new_name = "{0}.{1:04d}-{2:02d}-{3:02d}".format(self.log_filename,
-                                                            datetime.today().year, datetime.today)
+            new_name = "{0}.{1:}".format(self.log_filename, yesterday.strftime("%Y-%m-%d"))
             old_name = "{0}".format(self.log_filename)
             os.rename(old_name, new_name)
+            p = os.path.dirname(self.log_filename)
+            f = os.path.basename(self.log_filename) + '.'
+            x = []
+            c = 0
+            for root, dirnames, filenames in os.walk(p):
+                for fn in filenames:
+                    if f in fn:
+                        x.append(fn)
+            x.sort()
+            x.reverse()
+            z = x[self.roll_num:]
+            if len(z) > 0:
+                for f in z:
+                    try:
+                        os.remove(os.path.join(p, f))
+                    except:
+                        pass
             # shutil.move(old_name, new_name)
         else:
             for i in range(self.roll_num, 1, -1):
@@ -308,7 +329,7 @@ def getLogger(name=None,
               file_name=None,
               log_level=10,
               file_size=1024 * 1024 * 20,
-              roll_num=10,
+              roll_num=19,
               roll_midnight=True):
     global LOGGER_DICT
 
