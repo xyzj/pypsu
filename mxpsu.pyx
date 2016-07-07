@@ -476,7 +476,7 @@ class PriorityQueue:
         self.mutex.release()
         return n
 
-    def put(self, object item, block=1, timeout=0):
+    def put(self, item, block=1, timeout=0):
         """Put an item into the queue.
 
         If optional args 'block' is true and 'timeout' is None (the default),
@@ -511,7 +511,7 @@ class PriorityQueue:
         finally:
             self.not_full.release()
 
-    def put_nowait(self, tuple item):
+    def put_nowait(self, item):
         """Put an item into the queue without blocking.
 
         Only enqueue the item if a free slot is immediately available.
@@ -574,7 +574,7 @@ class PriorityQueue:
         return len(self.queue)
 
     # Put a new item in the queue
-    def _put(self, tuple item):
+    def _put(self, item):
         self.queue.insert(0, item)
         self.queue.sort(key=lambda it: it[0], reverse=True)
 
@@ -582,7 +582,7 @@ class PriorityQueue:
     def _get(self):
         return self.queue.pop()
 
-    def put_now(self, object item, priority=5):
+    def put_now(self, item, priority=5):
         self.put_nowait((priority, item))
 
     def __del__(self):
@@ -662,6 +662,13 @@ def cutString(instring, width):
     return tuple(a)
 
 
+def mkdirs(full_path, mode=0775):
+    try:
+        _os.makedirs(full_path, mode)
+    except:
+        pass
+        
+    
 def checkFolder(folders='log,conf', uplevel=0):
     """Summary
 
@@ -770,7 +777,7 @@ def ip2string(intip, usehostorder=0):
         return ''
 
 
-def convertProtobuf(object pb2msg):
+def convertProtobuf(pb2msg):
     """Summary
 
     Args:
@@ -801,7 +808,7 @@ def hexString(argv):
     return '-'.join(b)
 
 
-def hexList(list argv):
+def hexList(argv):
     """Summary
 
     Args:
@@ -818,7 +825,7 @@ def hexList(list argv):
     return hhex
 
 
-def checkLrc(list databytes):
+def checkLrc(databytes):
     """
     检查纵校验
 
@@ -834,7 +841,7 @@ def checkLrc(list databytes):
         return 0
 
 
-def lrcVB(list databytes):
+def lrcVB(databytes):
     """
     计算纵校验
 
@@ -863,7 +870,7 @@ def checkCrc16(databytes):
         return 0
 
 
-def crc16VB(list databytes):
+def crc16VB(databytes):
     """
     计算crc
 
@@ -902,7 +909,7 @@ def string2bytes(datastring, splitchar="-"):
     return s2bytes
 
 
-def bytes2string(list databytes, splitchar="-", noformat=1):
+def bytes2string(databytes, splitchar="-", noformat=1):
     """
     数字列表转字符串
 
@@ -1037,7 +1044,7 @@ def checkWinProcess(name):
         return 0
 
 
-def ipDecompose(list xips):
+def ipDecompose(xips):
     """Summary
 
     Args:

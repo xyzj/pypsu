@@ -98,10 +98,11 @@ class ClientSession(object):
         self.nothing_to_send = 1
         self.server_port = serverport
         self.gps = (0.0, 0.0)  # 经度 纬度
-        SEND_QUEUE[self.fileno] = PriorityQueue()
         self.debug = debug
-        CLIENTS[self.fileno] = self
-        register(self.fileno, READ)
+        if self.fileno > -1:
+            CLIENTS[self.fileno] = self
+            SEND_QUEUE[self.fileno] = PriorityQueue()
+            register(self.fileno, READ)
         self.onSessionConnect()
 
     def onSessionConnect(self):
@@ -227,6 +228,7 @@ class ClientSession(object):
             pass
         try:
             self.sock.close()
+            self.sock = None
         except:
             pass
         try:
@@ -302,13 +304,7 @@ class ClientSession(object):
         # self.last_send_time = _time.time()
         self.showDebug("send:{0}".format(self.wait4send))
 
-        if self.debug:
-            self.onSessionSend()
-        else:
-            try:
-                self.onSessionSend()
-            except Exception as ex:
-                print(ex)
+        self.onSessionSend()
 
         if SEND_QUEUE[self.fileno].empty():
             modify(self.fileno, READ)
@@ -330,7 +326,7 @@ class ClientSession(object):
 
         # 客户端断开
         if len(recbuff) == 0:
-            self.disconnect('client close')
+            self.disconnect('remote close')
             return 0
 
         t = _time.time()
@@ -342,13 +338,7 @@ class ClientSession(object):
 
         self.showDebug("recv:{0}".format(recbuff))
 
-        if self.debug:
-            self.onSessionRecv(recbuff)
-        else:
-            try:
-                self.onSessionRecv(recbuff)
-            except Exception as ex:
-                print(ex)
+        self.onSessionRecv(recbuff)
 
         if not SEND_QUEUE[self.fileno].empty():
             modify(self.fileno, WRITE)

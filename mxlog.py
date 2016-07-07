@@ -330,7 +330,17 @@ def getLogger(name=None,
               log_level=10,
               file_size=1024 * 1024 * 20,
               roll_num=19,
-              roll_midnight=True):
+              roll_midnight=1):
+    """
+    获取日志实例
+
+    Args:
+      name (str): 日志实例名称
+      file_name (str): 日志保存完整路径
+      file_size (int): 日志文件最大大小(按日期滚动时无效)
+      roll_num (int): 日志文件最大数量
+      roll_midnight (int): 是否按日期重命名日志文件
+    """
     global LOGGER_DICT
 
     if not isinstance(name, basestring):

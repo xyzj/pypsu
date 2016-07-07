@@ -42,6 +42,14 @@ else:
 CLIENTS = {}
 
 def register(fileno, objwatch, ssock=None):
+    """
+    注册epoll fd或select socket实例
+
+    Args:
+        fileno (object): fd或socket实例
+        objwatch (object): 监控事件
+        ssock (socket): 用于监听的socket实例
+    """
     global READ, WRITE, CLIENTS, IMPL
     if Platform.isLinux():
         try:
@@ -62,6 +70,13 @@ def register(fileno, objwatch, ssock=None):
 
 
 def modify(fileno, objwatch):
+    """
+    修改epoll fd或select socket实例监听事件
+
+    Args:
+        fileno (object): fd或socket实例
+        objwatch (object): 监控事件
+    """
     global READ, WRITE, CLIENTS, IMPL
     if Platform.isLinux():
         try:
@@ -81,6 +96,12 @@ def modify(fileno, objwatch):
 
 
 def unregister(fileno):
+    """
+    注销epoll fd或select socket实例监听事件
+
+    Args:
+        fileno (object): fd或socket实例
+    """
     global READ, WRITE, CLIENTS, IMPL
     if Platform.isLinux():
         try:
