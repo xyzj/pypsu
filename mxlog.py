@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import traceback
 import threading
 import codecs
+import shutil
 
 CRITICAL = 50
 FATAL = CRITICAL
@@ -105,7 +106,8 @@ class Logger():
             yesterday = today + timedelta(days=-1)
             new_name = "{0}.{1:}".format(self.log_filename, yesterday.strftime("%Y-%m-%d"))
             old_name = "{0}".format(self.log_filename)
-            os.rename(old_name, new_name)
+            # os.rename(old_name, new_name)
+            shutil.move(old_name, new_name)
             p = os.path.dirname(self.log_filename)
             f = os.path.basename(self.log_filename) + '.'
             x = []
@@ -131,11 +133,11 @@ class Logger():
                 if not os.path.isfile(old_name):
                     continue
 
-                os.rename(old_name, new_name)
-                # shutil.move(old_name, new_name)
+                # os.rename(old_name, new_name)
+                shutil.move(old_name, new_name)
 
-            os.rename(self.log_filename, self.log_filename + ".1")
-            # shutil.move(self.log_filename, self.log_filename + ".1")
+            # os.rename(self.log_filename, self.log_filename + ".1")
+            shutil.move(self.log_filename, self.log_filename + ".1")
 
     def formatLog(self, fmt, level, *args, **kwargs):
         if self.roll_midnight:

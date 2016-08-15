@@ -291,7 +291,7 @@ class ClientSession(object):
         if self.wait4send is None:
             senddata = None
             if not SEND_QUEUE[self.fileno].empty():
-                senddata = SEND_QUEUE[self.fileno].get_nowait()[1]
+                senddata = SEND_QUEUE[self.fileno].get_nowait()
             self.nothing_to_send = senddata is None
 
             self.wait4send = senddata
