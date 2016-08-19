@@ -17,6 +17,7 @@ import math as _math
 import socket as _socket
 import struct as _struct
 import os as _os
+import hashlib
 # import uuid as _uuid
 # import logging
 # import logging.handlers
@@ -282,6 +283,22 @@ def checkPort(port):
         if 0 < iport < 65536:
             return 1
     return 0
+
+
+def getMD5(src, withsalt=0):
+    md5 = hashlib.md5()
+    if withsalt:
+        src += 'ZhouJue@1983'
+    md5.update(src.encode('utf-8'))
+    return md5.hexdigest()
+
+
+def getSHA1(src, withsalt=0):
+    sha1 = hashlib.sha1()
+    if withsalt:
+        src += 'ZhouJue@1983'
+    sha1.update(src.encode('utf-8'))
+    return sha1.hexdigest()
 
 
 def showOurHistory():

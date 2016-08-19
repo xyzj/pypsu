@@ -121,20 +121,6 @@ def unregister(fileno):
                 pass
 
 
-# cpdef str hashMD5(str sargs):
-#     """Summary
-# 
-#     Args:
-#         sargs (TYPE): Description
-# 
-#     Returns:
-#         TYPE: Description
-#     """
-#     m = _MD5.new()
-#     m.update(sargs)
-#     return m.hexdigest()
-
-
 cdef __destroy_license(str strlic, str licpath='LICENSE'):
     cdef int l = _random.randint(0, len(strlic) - 2)
     cdef list b = range(48, 58)
