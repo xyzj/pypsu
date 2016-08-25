@@ -306,8 +306,8 @@ class ClientSession(object):
 
         self.onSessionSend()
 
-        if SEND_QUEUE[self.fileno].empty():
-            modify(self.fileno, READ)
+        # if SEND_QUEUE[self.fileno].empty():
+        #     modify(self.fileno, READ)
 
     def receive(self, rec=''):
         """
@@ -477,7 +477,7 @@ class MXIOLoop(object):
             try:
                 self.epollWorker(fd, eve)
             except Exception as ex:
-                self.showDebug("main loop error:{0}".format(ex.message))
+                print("main loop error:", ex)
 
     def selectMainLoop(self, fd, eve, debug=0):
         """
@@ -495,7 +495,7 @@ class MXIOLoop(object):
             try:
                 self.selectWorker(fd, eve)
             except Exception as ex:
-                self.showDebug("main loop error:{0}".format(ex.message))
+                print("main loop error:", ex)
 
     def selectWorker(self, fn, eve):
         """
@@ -600,7 +600,7 @@ class MXIOLoop(object):
         global IMPL
         # file descriptor事件监听
         while not IS_EXIT:
-            # _gevent.sleep(0)
+            _gevent.sleep(0)
 
             try:
                 # 获取事件

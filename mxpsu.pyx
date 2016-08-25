@@ -615,7 +615,7 @@ class PriorityQueue():
         Only enqueue the item if a free slot is immediately available.
         Otherwise raise the Full exception.
         """
-        return self.put((item, priority), False)
+        return self.put((priority, item), False)
 
     def get(self, block=1, timeout=0):
         """Remove and return an item from the queue.
@@ -657,7 +657,7 @@ class PriorityQueue():
         Only get an item if one is immediately available. Otherwise
         raise the Empty exception.
         """
-        return self.get(False)[0]
+        return self.get(False)[1]
 
     # Override these methods to implement other queue organizations
     # (e.g. stack or priority queue).
