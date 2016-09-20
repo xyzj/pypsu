@@ -436,11 +436,12 @@ class MXIOLoop(object):
 
     def doRecyle(self):
         # 检查是否有需要发送的数据
-        for fn in CLIENTS.keys():
-            session = CLIENTS.get(fn)
-            if session is not None:
-                if session.enableSend():
-                    modify(fn, WRITE)
+        for fn in SEND_QUEUE.keys():
+            if not SEND_QUEUE[fn].empty():
+                session = CLIENTS.get(fn)
+                if session is not None:
+                    if session.enableSend():
+                        modify(fn, WRITE)
         # 资源回收
         t = _time.time()
         if t - self.last_gc > 600:
