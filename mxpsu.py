@@ -716,6 +716,10 @@ class PriorityQueue():
 #     return output
 
 
+def getWindowsIpAddress():
+    return _socket.gethostbyname(_socket.gethostname())
+
+
 def getLinuxIpAddress(ifname):
     """Summary
 
@@ -833,6 +837,16 @@ def stamp2time(stamp, fromcsharp=0, format_type='%Y-%m-%d %H:%M:%S'):
         # return _time.strftime(format_type, _time.localtime(stamp))
 
 
+def switchStamp(stamp):
+    y = 621356256000000000.0
+    z = 10000000.0
+
+    if stamp > y:
+        return (stamp - y) / z
+    else:
+        return stamp * z + y
+
+
 def ip2int(strip, usehostorder=0):
     """Summary
 
@@ -880,12 +894,15 @@ def convertProtobuf(pb2msg):
     Returns:
         TYPE: Description
     """
-    a = ''
     try:
-        a = _base64.b64encode(pb2msg.SerializeToString())
+        return _base64.b64encode(pb2msg.SerializeToString())
     except:
-        a = ""
-    return a
+        return ''
+
+
+def hexBytesString(lstargv):
+    b = ["{0:02x}".format(int(a, 16)) for a in lstargv]
+    return "".join(b).decode('hex')
 
 
 def hexString(argv):
@@ -1218,3 +1235,28 @@ class GetchWindows():
             return msvcrt.getch()
         except:
             pass
+
+
+def get_dirs(parentdir, subdir):
+    '''
+    Returns: confdir, logdir, cachedir
+    '''
+    if Platform.isLinux():
+        # 配置文件目录
+        CONF_DIR = _os.path.join("/", "etc", parentdir, '{0}.d'.format(subdir))
+        # 日志文件目录
+        LOG_DIR = _os.path.join("/", "var", "log", parentdir, '{0}.d'.format(subdir))
+        # 缓存文件目录
+        CACHE_DIR = _os.path.join("/", "var", "cache", parentdir, '{0}.d'.format(subdir))
+        mkdirs(CONF_DIR)
+        mkdirs(LOG_DIR)
+        mkdirs(CACHE_DIR)
+    else:
+        # 配置文件目录
+        CONF_DIR = _os.path.join(SCRIPT_DIR, '..', 'conf')
+        # 日志文件目录
+        LOG_DIR = _os.path.join(SCRIPT_DIR, '..', 'log')
+        # 缓存文件目录
+        CACHE_DIR = _os.path.join(SCRIPT_DIR, '..', 'cache')
+        checkFolder('conf,log,cache', 1)
+    return (CONF_DIR, LOG_DIR, CACHE_DIR)

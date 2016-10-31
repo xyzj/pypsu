@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import sys
 from datetime import datetime, timedelta
@@ -37,7 +39,7 @@ class Logger():
         self.roll_num = roll_num
         self.roll_midnight = roll_midnight
         self.day = datetime.today().day
-        self.setLevel(LOGLEVEL[log_level])
+        self.setLevel(log_level)
         if file_name:
             self.setFile(file_name)
 
@@ -45,6 +47,7 @@ class Logger():
         self.buffer_size = buffer_size
 
     def setLevel(self, log_level):
+        global LOGLEVEL
         if log_level in LOGLEVEL.keys():
             level = LOGLEVEL[log_level]
         else:
