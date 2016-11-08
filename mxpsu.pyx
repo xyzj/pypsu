@@ -806,9 +806,9 @@ def time2stamp(timestr, tocsharp=0, format_type='%Y-%m-%d %H:%M:%S'):
 
     try:
         if tocsharp > 0:
-            return _time.mktime(_time.strptime(timestr, format_type)) * z + y
+            return int(_time.mktime(_time.strptime(timestr, format_type)) * z + y)
         else:
-            return _time.mktime(_time.strptime(timestr, format_type))
+            return int(_time.mktime(_time.strptime(timestr, format_type)))
     except Exception as ex:
         print(ex)
         return 0
@@ -842,9 +842,9 @@ def switchStamp(stamp):
     z = 10000000.0
 
     if stamp > y:
-        return (stamp - y) / z
+        return int((stamp - y) / z)
     else:
-        return stamp * z + y
+        return int(stamp * z + y)
 
 
 def ip2int(strip, usehostorder=0):
@@ -1048,7 +1048,8 @@ def list2string(datalist, splitchar="-", compress=0):
         splitchar (str, optional): Description
         compress (bool, optional): Description
     """
-    s = ""
+
+    s = ''
     for d in datalist:
         s += splitchar + str(d)
     s = s[1:]

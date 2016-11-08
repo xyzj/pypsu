@@ -254,7 +254,7 @@ class ClientSession(object):
             return
 
         # 发送心跳
-        if now - self.last_send_time > 70 and SEND_QUEUE[self.fileno].empty():
+        if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[self.fileno].empty():
             SEND_QUEUE[self.fileno].put_nowait(self.ka)
             modify(self.fileno, WRITE)
 
