@@ -657,7 +657,10 @@ class PriorityQueue():
         Only get an item if one is immediately available. Otherwise
         raise the Empty exception.
         """
-        return self.get(False)[1]
+        if self._qsize() > 0:
+            return self.get(False)[1]
+        else:
+            return None
 
     # Override these methods to implement other queue organizations
     # (e.g. stack or priority queue).
@@ -1261,3 +1264,18 @@ def get_dirs(parentdir, subdir):
         CACHE_DIR = _os.path.join(SCRIPT_DIR, '..', 'cache')
         checkFolder('conf,log,cache', 1)
     return (CONF_DIR, LOG_DIR, CACHE_DIR)
+
+
+def copyFiles(sourceDir, targetDir):
+    for f in _os.listdir(sourceDir):
+        sourcef = _os.path.join(sourceDir, f)
+        targetf = _os.path.join(targetDir, f)
+        if _os.path.isfile(sourcef):
+            # 创建目录
+            if not _os.path.exists(targetDir):
+                _os.makedirs(targetDir)
+                # 文件不存在,或大小不同,覆盖
+                if not _os.path.exists(targetf) or (_os.path.exists(targetf) and (
+                        _os.path.getsize(targetf) != _os.path.getsize(sourcef))):
+                    # 二进制复制
+                    open(targetf, 'wb').write(open(sourcef, 'rb').read())
