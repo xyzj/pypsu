@@ -147,11 +147,11 @@ cdef str __decrypt_string(str strCText, str strKey=""):
     cdef str plaintext = decryptor.decrypt(_base64.b64decode(strCText)).strip()
     return plaintext
 
-
+    
 cdef str __load_license(str licpath='LICENSE'):
     cdef list lic = []
     try:
-        with open(licpath, 'rU') as f:
+        with open(licpath, "rU") as f:
             lic = f.readlines()
     except:
         return "err:License file not found."
@@ -162,8 +162,8 @@ cdef str __load_license(str licpath='LICENSE'):
         s += l.strip()
     if s == "":
         return "err:License file data error."
-    cdef int x = int(s[7])
-    cdef int lx = int(s[18:18 + x])
+    cdef int x = int(s[8])
+    cdef int lx = int(s[23:23 + x])
     s = s[lx + x + 2:].swapcase()
     try:
         ss = _zlib.decompress(_base64.b64decode(s))
@@ -175,13 +175,14 @@ cdef str __load_license(str licpath='LICENSE'):
         mlic = {}
         for j in lss:
             mlic[j.split(':')[0]] = int(j.split(':')[1])
+        # mlic = _json.loads(ss)
         x = mlic["deadline"] - int(_time.time())
         if x < 0:
             __destroy_license(s, licpath)
             return "err:Current license has expired!"
     except:
         return "err:License file load error."
-
+    
     return 'The license will expire in {0} days {1} hours.'.format(x / 3600 / 24, x / 3600 % 24)
 
 

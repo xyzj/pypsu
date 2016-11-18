@@ -21,40 +21,39 @@ cdef int __time2stamp(str timestr, int tocsharp=0, str format_type='%Y-%m-%d %H:
         return 0
 
 cdef str __buildhistory():
-    cdef str s = """
-    2007-12-07  We met ...
-    2009-01-28  We conducted the first trip ...
-    2009-07-20  We got our marriage certificate ...
-    2010-06-05  We got married ...
-    2010-12-??  You're pregnant ...
-    2011-09-15  We had our lovely daughter ...
-    2013-05-01  You are sick ...
-    2014-06-05  We welcome our 5th wedding anniversary ...
-    2014-08-19  You have your 31 birthday ...
-    2014-08-21 17:55  You left me and our daughter forever ...
+    cdef str s = """2007-12-07  We met ...
+2009-01-28  We conducted the first trip ...
+2009-07-20  We got our marriage certificate ...
+2010-06-05  We got married ...
+2010-12-??  You're pregnant ...
+2011-09-15  We had our lovely daughter ...
+2013-05-01  You are sick ...
+2014-06-05  We welcome our 5th wedding anniversary ...
+2014-08-19  You have your 31 birthday ...
+2014-08-21 17:55  You left me and our daughter forever ...
 
-    NNNNNNNNWWWWWWWWWWWWWWWWWWWWWWWMKNNN..0WNNNNNNNN
-    NNNNNNNWWWWWWWWWWWMMMMMMMMMMMOOWWWWWWN..KWNNNNNN
-    NNNNNNWWWWWWWWWWMMMMMMMMMMMMt..XWWWWWWWX..WWNNNN
-    NNNNNWWWWWWWWWMMMMMMMMWXXWMMMMi.MMWWWWWWW.OONNNN
-    NNNNWWWWWWWWWMMMMMMMM..KX...OMM..XMMWWWWM.ttNNNN
-    NNNNWWWWWWWWWMMMMMMMi.WMMMMM.xMMX...XWW0..NNNNNN
-    NNNNWWWWWWWWWMW.......WMMMMMK.MMMWWW....WWNNNNNN
-    NNNNNWWWWWWWWN.KMMMMMMMMMMMM0.MMMWWWWWWWWWNNNNNN
-    NNNNNNWWWWWWWK.KMMMMMMMMMMMM.xMWWWWWWWWWWNNNNNNN
-    NNNNNN...MWWWW0.rNWWWWWNWM...NWWWWWWWWWWNWNNNNNN
-    NNWWr....KWWWWWMW............MWWWWWWWWWNNNNNNNNN
-    NNNNNWNWW....WWWWWWWWWWWWWMMWWWWWWWWWNNNNNNNNNNN
-    NNNNNNNNNNMM..rWNNWWWWWWWWWWWWWWWWNNNNNNNNNNNNNX
-    XNNNNNNNNNNNNM....WWWWWWWWWWWWNNNNNNNNNNNNNNNXXX
-    XXXXXNNNNNNNNX..XWNNNNNNNNNNNNNNNNNNNNNNNNNNXXXX
-    """
+NNNNNNNNWWWWWWWWWWWWWWWWWWWWWWWMKNNN..0WNNNNNNNN
+NNNNNNNWWWWWWWWWWWMMMMMMMMMMMOOWWWWWWN..KWNNNNNN
+NNNNNNWWWWWWWWWWMMMMMMMMMMMMt..XWWWWWWWX..WWNNNN
+NNNNNWWWWWWWWWMMMMMMMMWXXWMMMMi.MMWWWWWWW.OONNNN
+NNNNWWWWWWWWWMMMMMMMM..KX...OMM..XMMWWWWM.ttNNNN
+NNNNWWWWWWWWWMMMMMMMi.WMMMMM.xMMX...XWW0..NNNNNN
+NNNNWWWWWWWWWMW.......WMMMMMK.MMMWWW....WWNNNNNN
+NNNNNWWWWWWWWN.KMMMMMMMMMMMM0.MMMWWWWWWWWWNNNNNN
+NNNNNNWWWWWWWK.KMMMMMMMMMMMM.xMWWWWWWWWWWNNNNNNN
+NNNNNN...MWWWW0.rNWWWWWNWM...NWWWWWWWWWWNWNNNNNN
+NNWWr....KWWWWWMW............MWWWWWWWWWNNNNNNNNN
+NNNNNWNWW....WWWWWWWWWWWWWMMWWWWWWWWWNNNNNNNNNNN
+NNNNNNNNNNMM..rWNNWWWWWWWWWWWWWWWWNNNNNNNNNNNNNX
+XNNNNNNNNNNNNM....WWWWWWWWWWWWNNNNNNNNNNNNNNNXXX
+XXXXXNNNNNNNNX..XWNNNNNNNNNNNNNNNNNNNNNNNNNNXXXX
+"""
 
     cdef list b = []
     cdef str d = ""
     cdef str ff = ""
     for x in s:
-        b.append(hex(ord(x) - 8))
+        b.append(hex(ord(x) - 7))
 
     for c in b:
         ff += chr(int(c, 16))
@@ -113,12 +112,12 @@ cdef str __build_history():
         ss = f.readline()
     cdef str oh = ""
     for s in ss:
-        oh += chr(ord(s) + 8)
+        oh += chr(ord(s) + 7)
 
     cdef str a = _base64.b64encode(oh)
     cdef int x = a.count("=")
     cdef int l = len(a)
-    return "{0}{1}{2}{3}{4}{5}".format(a[:7], len(str(l)), x, a[7:16], l, a[16:]).replace("=", "z")
+    return "{0}{1}{2}{3}{4}{5}".format(a[:8], len(str(l)), x, a[8:21], l, a[21:]).replace("=", "z")
 
 
 cdef str __generate_license(int deadline_year, int max_client=2100):
@@ -132,9 +131,9 @@ cdef str __generate_license(int deadline_year, int max_client=2100):
     slic = _base64.b64encode(_zlib.compress(sl, 9)).swapcase()
     slic = __build_history() + slic
     l = len(slic)
-    cdef list llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
+    cdef list llic = ['{0}BEGIN LICENSE{1}'.format('-' * 7, '-' * 7)]
     llic.extend([slic[i: i + 27] for i in range(0, l, 27)])
-    llic.append("–" * 8 + "END LICENSE" + "–" * 8)
+    llic.append('{0}END LICENSE{1}'.format('-' * 8, '-' * 8))
     with open("LICENSE", 'w') as f:
         f.writelines([c + "\n" for c in llic])
     with open(".LICENSE", 'w') as f:
@@ -156,8 +155,8 @@ cdef str __load_license(str licpath='LICENSE'):
         s += l.strip()
     if s == "":
         return "err:License file data error."
-    cdef int x = int(s[7])
-    cdef int lx = int(s[18:18 + x])
+    cdef int x = int(s[8])
+    cdef int lx = int(s[23:23 + x])
     s = s[lx + x + 2:].swapcase()
     try:
         ss = _zlib.decompress(_base64.b64decode(s))
