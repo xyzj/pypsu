@@ -1,6 +1,6 @@
 #!/bin/bash
 cp -vf mxhpss.py mxhpss.pyx
-cp -vf mxsp.py mxsp.pyx
+cp -vf mxweb.py mxweb.pyx
 cp -vf mxpsu.py mxpsu.pyx
 cp -vf mxlog.py mxlog.pyx
 

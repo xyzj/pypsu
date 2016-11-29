@@ -1,6 +1,6 @@
 SET VS90COMNTOOLS=%VS100COMNTOOLS%
 copy /Y mxhpss.py mxhpss.pyx
-copy /Y mxsp.py mxsp.pyx
+copy /Y mxweb.py mxweb.pyx
 copy /Y mxpsu.py mxpsu.pyx
 copy /Y mxlog.py mxlog.pyx
 
