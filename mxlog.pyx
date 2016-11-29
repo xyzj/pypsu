@@ -151,7 +151,7 @@ class Logger():
             lineend = '\r\n'
         else:
             lineend = '\n'
-        return '{0} [{1}] {2}{3}'.format(time_str, level, fmt % args, lineend)
+        return '{0} [{1}] {2}{3}'.format(time_str, level, fmt, lineend)
 
     def resetFile(self):
         try:
