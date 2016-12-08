@@ -9,6 +9,7 @@ import time
 import os
 import mxpsu as mx
 import zlib
+import logging
 import base64
 
 
@@ -16,6 +17,30 @@ class MXRequestHandler(tornado.web.RequestHandler):
 
     url_pattern = None
     keep_name_case = False
+    cache_dir = mx.SCRIPT_DIR
+
+    # post_log_msg = []
+
+    def write(self, chunk):
+        super(MXRequestHandler, self).write(chunk)
+        if self.request.method == 'POST':
+            logging.info(self.format_log(self.request.remote_ip, chunk, self.request.path, 'REP'))
+
+    # def on_finish(self):
+    #     if self.request.method == 'POST' and len(self.post_log_msg) > 0:
+    #         logging.info(self.format_log(self.request.remote_ip,
+    #                                      ','.join(self.post_log_msg),
+    #                                      self.request.path,
+    #                                      is_req=0))
+    #     self.post_log_msg = []
+
+    def prepare(self):
+        if self.request.method == 'POST':
+            logging.info(self.format_log(self.request.remote_ip, str(self.request.arguments),
+                                         self.request.path, 'REQ'))
+
+    def format_log(self, remote_ip, msg, path='', method=''):
+        return '{3} {1} ({0}) {2}'.format(remote_ip, path, msg, method)
 
     def computing_security_code(self, scode):
         x = set([mx.getMD5('{0}3a533ba0'.format(mx.stamp2time(time.time(),
@@ -47,13 +72,14 @@ def route():
 
     def handler_wapper(cls):
         assert (issubclass(cls, MXRequestHandler))
-        if cls.__name__ == 'MainHandler':
-            cls.url_pattern = r'/'
-        else:
-            if cls.keep_name_case:
-                cls.url_pattern = r'/' + cls.__name__[:-7]
+        if cls.url_pattern is None or not cls.url_pattern.startswith(r'/'):
+            if cls.__name__ == 'MainHandler':
+                cls.url_pattern = r'/'
             else:
-                cls.url_pattern = r'/' + cls.__name__[:-7].lower()
+                if cls.keep_name_case:
+                    cls.url_pattern = r'/' + cls.__name__[:-7]
+                else:
+                    cls.url_pattern = r'/' + cls.__name__[:-7].lower()
         return cls
 
     return handler_wapper
