@@ -1337,6 +1337,11 @@ def getDistance(a, b):
 
 
 def formatLog(log_txt, dateformat='%Y-%m-%d %H:%M:%S'):
+    '''
+    Args:
+    log_txt (str): 
+    dateformat (str), default: %Y-%m-%d %H:%M:%S
+    '''
     a = str(u"{0} {1}".format(_time.strftime(dateformat, _time.localtime()), log_txt))
     return a
 
@@ -1350,6 +1355,11 @@ def checkPort(port):
 
 
 def getMD5(src, withsalt=0):
+    '''
+    Args:
+    src (str)
+    withsalt (bool): 0-False,1-True, saltstr is secret
+    '''
     md5 = hashlib.md5()
     if withsalt:
         src += 'ZhouJue@1983'
@@ -1358,6 +1368,11 @@ def getMD5(src, withsalt=0):
 
 
 def getSHA1(src, withsalt=0):
+    '''
+    Args:
+    src (str)
+    withsalt (bool): 0-False,1-True, saltstr is secret
+    '''
     sha1 = hashlib.sha1()
     if withsalt:
         src += 'ZhouJue@1983'
@@ -1378,172 +1393,6 @@ def showOurHistory():
             oh += chr(b + 7)
     print(oh)
     return oh
-
-# class AdvLogger:
-#     def __init__(self, file_name_prefix, console_level=30, file_level='20', datefmt='%H:%M:%S', logdir='', backupcount=90):
-#         if logdir == "":
-#             self.log_dir = _os.path.join(SCRIPT_DIR, "log")
-#         else:
-#             self.log_dir = logdir
-#         self._mkdirs()
-#         # self.baseFilename = "{0:s}.log".format(_os.path.join(self.log_dir, file_name_prefix))
-# 
-#         self.logger = logging.getLogger(file_name_prefix)
-#         self.logger.setLevel(logging.DEBUG)
-#         # fmt = logging.Formatter(fmt='%(asctime)s [%(levelno)s] %(message)s', datefmt=datefmt)
-#         self.setLogLevel(datefmt, console_level, file_level, file_name_prefix, backupcount)
-# 
-#     def setLogLevel(self, datefmt, console_level, file_level, file_name_prefix, backupcount):
-#         for h in self.logger.handlers:
-#             self.logger.removeHandler(h)
-# 
-#         fmt = logging.Formatter(fmt='%(asctime)s %(message)s', datefmt=datefmt)
-#         consolelog = logging.StreamHandler()
-#         consolelog.setLevel(console_level)
-#         consolelog.setFormatter(fmt)
-#         self.logger.addHandler(consolelog)
-#         del consolelog
-#         flevels = file_level.split(',')
-#         name = 'norecord'
-#         for level in flevels:
-#             if level == "10":
-#                 name = "debug"
-#             elif level == "20":
-#                 name = "info"
-#             elif level == "30":
-#                 name = "warring"
-#             elif level == "40":
-#                 name = "error"
-#             filelog = logging.handlers.TimedRotatingFileHandler(
-#                 "{0:s}.{1:s}.log".format(_os.path.join(self.log_dir, file_name_prefix), name),
-#                 when='midnight', interval=1, backupCount=backupcount, encoding='utf-8')
-#             # self.filelog.suffix = "%Y%m%d.log"
-#             filelog.setLevel(int(level))
-#             filelog.setFormatter(fmt)
-#             self.logger.addHandler(filelog)
-#             del filelog
-# 
-#     def _mkdirs(self):
-#         if not _os.path.exists(self.log_dir):
-#             try:
-#                 _os.makedirs(self.log_dir, mode=777)
-#             except Exception as e:
-#                 print(str(e))
-# 
-#     def __del__(self):
-#         self.clear()
-# 
-#     def print_handlers(self):
-#         print(self.logger.handlers)
-# 
-#     def clear(self):
-#         if self.logger is None:
-#             return
-#         for h in self.logger.handlers:
-#             self.logger.removeHandler(h)
-#         # self.logger.shutdown()
-#         self.logger = None
-# 
-#     def saveLog(self, s, l=40):
-#         if self.logger is None:
-#             return
-# 
-#         try:
-#             s = str(s).strip()
-#         except:
-#             return
-# 
-#         try:
-#             if len(s) == 0:
-#                 return
-#             if l == 10:
-#                 self.logger.debug(s)
-#             elif l == 20 or l == 99:
-#                 self.logger.info(s)
-#             elif l == 30:
-#                 self.logger.warning(s)
-#             elif l == 40:
-#                 self.logger.error(s)
-#             elif l == 50:
-#                 self.logger.critical(s)
-#             else:
-#                 pass
-#         except Exception as ex:
-#             with open("mxpsu.logger.err", 'a') as f:
-#                 f.write(ex.message + "\r\n")
-#             print(ex.message)
-# 
-# 
-# class MyLogger:
-#     def __init__(self, file_name_prefix, filelog_level=20, consolelog_level=60, datefmt='%H:%M:%S', logdir='', backupcount=90):
-#         if logdir == "":
-#             self.log_dir = _os.path.join(SCRIPT_DIR, "log")
-#         else:
-#             self.log_dir = logdir
-#         self._mkdirs()
-#         self.baseFilename = "{0:s}.log".format(_os.path.join(self.log_dir, file_name_prefix))
-# 
-#         self.logger = logging.getLogger(file_name_prefix)
-#         self.logger.setLevel(logging.DEBUG)
-#         fmt = logging.Formatter(fmt='%(asctime)s [%(levelno)s] %(message)s', datefmt=datefmt)
-#         filelog = logging.handlers.TimedRotatingFileHandler(
-#             self.baseFilename, when='midnight', interval=1, backupCount=backupcount, encoding='utf-8')
-#         # self.filelog.suffix = "%Y%m%d.log"
-#         filelog.setLevel(filelog_level)
-#         filelog.setFormatter(fmt)
-#         consolelog = logging.StreamHandler()
-#         consolelog.setLevel(consolelog_level)
-#         consolelog.setFormatter(fmt)
-#         self.logger.addHandler(consolelog)
-#         self.logger.addHandler(filelog)
-# 
-# 
-#     def _mkdirs(self):
-#         if not _os.path.exists(self.log_dir):
-#             try:
-#                 _os.makedirs(self.log_dir, mode=777)
-#             except Exception as e:
-#                 print(str(e))
-# 
-#     def __del__(self):
-#         self.clear()
-# 
-#     def print_handlers(self):
-#         print(self.logger.handlers)
-# 
-#     def clear(self):
-#         for h in self.logger.handlers:
-#             self.logger.removeHandler(h)
-#         self.logger = None
-# 
-#     def saveLog(self, s, l=40):
-#         if self.logger is None:
-#             return
-# 
-#         try:
-#             s = str(s).strip()
-#         except:
-#             return
-# 
-#         try:
-#             if len(s) == 0:
-#                 return
-#             if l == 10:
-#                 self.logger.debug(s)
-#             elif l == 20 or l == 99:
-#                 self.logger.info(s)
-#             elif l == 30:
-#                 self.logger.warning(s)
-#             elif l == 40:
-#                 self.logger.error(s)
-#             elif l == 50:
-#                 self.logger.critical(s)
-#             else:
-#                 pass
-#         except Exception as ex:
-#             with open("pymxlib.err", 'a') as f:
-#                 f.write(ex.message + "\r\n")
-#             print(ex.message)
 
 
 class PriorityQueue():
@@ -1790,10 +1639,10 @@ def getLinuxIpAddress(ifname):
     """Summary
 
     Args:
-        ifname (TYPE): Description
+        ifname (str): something like eth0
 
     Returns:
-        TYPE: Description
+        str: ip string
     """
     try:
         import fcntl
@@ -1810,13 +1659,11 @@ def cutString(instring, width):
     """Summary
 
     Args:
-        instring (TYPE): Description
-        width (TYPE): Description
-        splitchar (str, optional): Description
-        aslist (bool, optional): Description
+        instring (str): Description
+        width (int): Description
 
     Returns:
-        TYPE: Description
+        str: Description
     """
     l = len(instring)
     a = [instring[x:x + width] for x in range(0, l, width)]
@@ -1824,6 +1671,11 @@ def cutString(instring, width):
 
 
 def mkdirs(full_path, mode=0775):
+    '''
+    Args:
+    full_path (str): dir path
+    mode (int): something like 0775
+    '''
     try:
         _os.makedirs(full_path, mode)
     except:
@@ -1936,7 +1788,7 @@ def ip2string(intip, usehostorder=0):
     """Summary
 
     Args:
-        intip (TYPE): Description
+        intip (int): Description
         usehostorder (bool, optional): Description
 
     Returns:
@@ -1955,10 +1807,10 @@ def convertProtobuf(pb2msg):
     """Summary
 
     Args:
-        pb2msg (TYPE): Description
+        pb2msg (pb2): Description
 
     Returns:
-        TYPE: Description
+        str: Description
     """
     try:
         return _base64.b64encode(pb2msg.SerializeToString())
@@ -2143,7 +1995,7 @@ def buildMac(head=0):
     :return:
 
     Args:
-        head (int, optional): Description
+        head (int, optional): 0-custom,1-kvm
     """
     machex = ""
     if head == 0:  # jue
@@ -2342,3 +2194,116 @@ def copyFiles(sourceDir, targetDir):
                         _os.path.getsize(targetf) != _os.path.getsize(sourcef))):
                     # 二进制复制
                     open(targetf, 'wb').write(open(sourcef, 'rb').read())
+
+
+class ConfigFile():
+
+    def __init__(self, conf=dict(), path=''):
+        '''
+        Args:
+        conf (dict): config data, as a dict
+        path (str): config file full path, default: config.conf
+        '''
+        self._conf_data = conf
+        if len(path) > 0:
+            self._conf_file = path
+            self.loadConfig()
+        else:
+            self._conf_file = ''
+
+        if 'nt' in _os.name:
+            self.lineend = '\r\n'
+        elif 'posix' in _os.name:
+            self.lineend = '\n'
+
+    def saveConfig(self):
+        if self._conf_file == '':
+            return
+
+        conf = []
+        for a in self._conf_data.keys():
+            conf.append(u'#{0}'.format(self._conf_data.get(a)[1]))
+            conf.append(u'{0}={1}'.format(a, self._conf_data.get(a)[0]))
+
+        with open(self._conf_file, 'w') as f:
+            try:
+                f.writelines([c + self.lineend if c.startswith('#') else c + self.lineend * 2
+                              for c in conf])
+            except:
+                pass
+            f.close()
+
+    def loadConfig(self, path=''):
+        if len(path) > 0:
+            self._conf_file = path
+        if not _os.path.isfile(self._conf_file):
+            self.saveConfig()
+        else:
+            with open(self._conf_file, 'r') as f:
+                conf = f.readlines()
+                remark = ''
+                for c in conf:
+                    c = c.strip()
+                    if len(c) == 0:
+                        continue
+                    if c.startswith('#'):
+                        remark += '{0}{1}'.format(c, self.lineend)
+                    if c.find('=') > 0:
+                        a, b = c.split('=')
+                        self._conf_data[a.strip()] = (b.strip(), remark)
+                        remark = ''
+                f.close()
+            self.saveConfig()
+
+    def setData(self, key, value, remark=''):
+        '''
+        when key is exist, this will update the config data, else this add new one
+        the data will be save Immediately.
+        Args:
+        key (str): config data key name
+        value (str): config data value
+        remark (str): config data describe, it's better not to be empty
+        '''
+        value = str(value)
+        remark = str(remark)
+
+        if len(key.strip()) == 0:
+            return False
+
+        if len(remark) == 0:
+            remark = self._conf_data.get(key)[1]
+            if remark is None:
+                remark = ''
+        self._conf_data[key] = (value, remark)
+        self.saveConfig()
+        return True
+
+    def delData(self, key):
+        '''
+        Args:
+        key (str): config data key name
+        '''
+        if key not in self._conf_data.keys():
+            return False
+
+        del self._conf_data[key]
+        self.saveConfig()
+        return True
+
+    def getData(self, key, with_remark=0):
+        '''
+        Args:
+        key (str): config data key name
+        with_remark (bool): 0-return value,1-return (value, remark)
+        '''
+        if with_remark:
+            return self._conf_data.get(key)
+        else:
+            return self._conf_data.get(key)[0]
+
+    def getKeys(self):
+        '''
+        Args:
+        key (str): config data key name
+        '''
+        return self._conf_data.keys()
