@@ -25,7 +25,7 @@ class Logger():
     def __init__(self,
                  file_name=None,
                  log_level=10,
-                 file_size=1024 * 1024 * 20,
+                 file_size=1024 * 1024 * 300,
                  roll_num=19,
                  roll_midnight=True):
         self.file_max_size = file_size
@@ -93,11 +93,11 @@ class Logger():
 
     def setFile(self, file_name):
         self.log_filename = file_name
-        if os.path.isfile(file_name):
+        if os.path.exists(file_name):
             self.file_size = os.path.getsize(file_name)
-            if self.file_size > self.file_max_size:
-                self.rollLog(self.roll_midnight)
-                self.file_size = 0
+        #     if self.file_size > self.file_max_size:
+        #         self.rollLog(self.roll_midnight)
+        #         self.file_size = 0
         else:
             self.file_size = 0
 
@@ -109,8 +109,12 @@ class Logger():
             yesterday = today + timedelta(days=-1)
             new_name = "{0}.{1:}".format(self.log_filename, yesterday.strftime("%Y-%m-%d"))
             old_name = "{0}".format(self.log_filename)
-            # os.rename(old_name, new_name)
-            shutil.move(old_name, new_name)
+            if os.path.exists(new_name):
+                h = today.time().hour
+                m = today.time().minute
+                s = today.time().second
+                os.rename(new_name, '{0}.{1}'.format(new_name, h * 60 * 60 + m * 60 + s))
+            os.rename(old_name, new_name)
             p = os.path.dirname(self.log_filename)
             f = os.path.basename(self.log_filename) + '.'
             x = []
@@ -130,17 +134,18 @@ class Logger():
                         pass
             # shutil.move(old_name, new_name)
         else:
-            for i in range(self.roll_num, 1, -1):
-                new_name = "{0}.{1}".format(self.log_filename, i)
-                old_name = "{0}.{1}".format(self.log_filename, i - 1)
-                if not os.path.isfile(old_name):
-                    continue
-
-                # os.rename(old_name, new_name)
-                shutil.move(old_name, new_name)
-
-            # os.rename(self.log_filename, self.log_filename + ".1")
-            shutil.move(self.log_filename, self.log_filename + ".1")
+            for i in range(self.roll_num - 1, 0, -1):
+                sfn = "%s.%d" % (self.log_filename, i)
+                dfn = "%s.%d" % (self.log_filename, i + 1)
+                if os.path.exists(sfn):
+                    # print "%s -> %s" % (sfn, dfn)
+                    if os.path.exists(dfn):
+                        os.remove(dfn)
+                    os.rename(sfn, dfn)
+            dfn = self.log_filename + ".1"
+            if os.path.exists(dfn):
+                os.remove(dfn)
+            os.rename(self.log_filename, dfn)
 
     def formatLog(self, fmt, level, *args, **kwargs):
         if self.roll_midnight:
@@ -200,21 +205,22 @@ class Logger():
 
                 self.file_size += len(string)
 
-            if self.buffer_size:
-                self.last_no += 1
-                self.buffer[self.last_no] = string
-                buffer_len = len(self.buffer)
-                if buffer_len > self.buffer_size:
-                    del self.buffer[self.last_no - self.buffer_size]
+            # if self.buffer_size:
+            #     self.last_no += 1
+            #     self.buffer[self.last_no] = string
+            #     buffer_len = len(self.buffer)
+            #     if buffer_len > self.buffer_size:
+            #         del self.buffer[self.last_no - self.buffer_size]
         except Exception as e:
             string = '%s - [%s]LOG_EXCEPT: %s, Except:%s<br> %s' % (
                 datetime.now().strftime("%m-%d %H:%M:%S.%f")[:14], level, fmt % args, e,
                 traceback.format_exc())
-            self.last_no += 1
-            self.buffer[self.last_no] = string
-            buffer_len = len(self.buffer)
-            if buffer_len > self.buffer_size:
-                del self.buffer[self.last_no - self.buffer_size]
+            print(string)
+            # self.last_no += 1
+            # self.buffer[self.last_no] = string
+            # buffer_len = len(self.buffer)
+            # if buffer_len > self.buffer_size:
+            #     del self.buffer[self.last_no - self.buffer_size]
         finally:
             self.buffer_lock.release()
 

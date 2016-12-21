@@ -2222,8 +2222,11 @@ class ConfigFile():
 
         conf = []
         for a in self._conf_data.keys():
-            conf.append(u'#{0}'.format(self._conf_data.get(a)[1]))
-            conf.append(u'{0}={1}'.format(a, self._conf_data.get(a)[0]))
+            value, remark = self._conf_data.get(a)
+            if not remark.startswith('#'):
+                remark = '# ' + remark
+            conf.append(u'{0}'.format(remark))
+            conf.append(u'{0}={1}'.format(a, value))
 
         with open(self._conf_file, 'w') as f:
             try:
@@ -2247,10 +2250,10 @@ class ConfigFile():
                     if len(c) == 0:
                         continue
                     if c.startswith('#'):
-                        remark += '{0}{1}'.format(c, self.lineend)
+                        remark += c
                     if c.find('=') > 0:
                         a, b = c.split('=')
-                        self._conf_data[a.strip()] = (b.strip(), remark)
+                        self._conf_data[a.strip()] = (b.strip(), remark.strip())
                         remark = ''
                 f.close()
             self.saveConfig()

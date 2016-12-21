@@ -2210,7 +2210,7 @@ class ConfigFile():
             self.loadConfig()
         else:
             self._conf_file = ''
-        
+
         if 'nt' in _os.name:
             self.lineend = '\r\n'
         elif 'posix' in _os.name:
@@ -2222,12 +2222,16 @@ class ConfigFile():
 
         conf = []
         for a in self._conf_data.keys():
-            conf.append(u'#{0}'.format(self._conf_data.get(a)[1]))
-            conf.append(u'{0}={1}'.format(a, self._conf_data.get(a)[0]))
+            value, remark = self._conf_data.get(a)
+            if not remark.startswith('#'):
+                remark = '# ' + remark
+            conf.append(u'{0}'.format(remark))
+            conf.append(u'{0}={1}'.format(a, value))
 
         with open(self._conf_file, 'w') as f:
             try:
-                f.writelines([c + self.lineend if c.startswith('#') else c + self.lineend * 2 for c in conf])
+                f.writelines([c + self.lineend if c.startswith('#') else c + self.lineend * 2
+                              for c in conf])
             except:
                 pass
             f.close()
@@ -2246,10 +2250,10 @@ class ConfigFile():
                     if len(c) == 0:
                         continue
                     if c.startswith('#'):
-                        remark += '{0}{1}'.format(c, self.lineend)
+                        remark += c
                     if c.find('=') > 0:
                         a, b = c.split('=')
-                        self._conf_data[a.strip()] = (b.strip(), remark)
+                        self._conf_data[a.strip()] = (b.strip(), remark.strip())
                         remark = ''
                 f.close()
             self.saveConfig()
@@ -2265,7 +2269,7 @@ class ConfigFile():
         '''
         value = str(value)
         remark = str(remark)
-        
+
         if len(key.strip()) == 0:
             return False
 
