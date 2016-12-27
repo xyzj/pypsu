@@ -147,7 +147,7 @@ class Logger():
                 os.remove(dfn)
             os.rename(self.log_filename, dfn)
 
-    def formatLog(self, fmt, level, *args, **kwargs):
+    def formatLog(self, fmt, level):  # , *args, **kwargs):
         if self.roll_midnight:
             time_str = datetime.now().strftime("%H:%M:%S.%f")[:12]
         else:
@@ -168,8 +168,8 @@ class Logger():
         self.log_fd = codecs.open(self.log_filename, "a", encoding='utf-8')
         self.file_size = 0
 
-    def log(self, level, console_color, html_color, fmt, *args, **kwargs):
-        string = self.formatLog(fmt, level, *args, **kwargs)
+    def log(self, level, console_color, html_color, fmt):  # , *args, **kwargs):
+        string = self.formatLog(fmt, level)  # , *args, **kwargs)
         if not os.path.isfile(self.log_filename):
             try:
                 self.log_fd.close()
@@ -213,7 +213,7 @@ class Logger():
             #         del self.buffer[self.last_no - self.buffer_size]
         except Exception as e:
             string = '%s - [%s]LOG_EXCEPT: %s, Except:%s<br> %s' % (
-                datetime.now().strftime("%m-%d %H:%M:%S.%f")[:14], level, fmt % args, e,
+                datetime.now().strftime("%m-%d %H:%M:%S.%f")[:14], level, fmt, e,
                 traceback.format_exc())
             print(string)
             # self.last_no += 1
@@ -224,9 +224,9 @@ class Logger():
         finally:
             self.buffer_lock.release()
 
-    def writeLog(self, fmt, log_level=20, *args, **kwargs):
+    def writeLog(self, fmt, log_level=20):  # , *args, **kwargs):
         if log_level == 0:
-            string = self.formatLog(fmt, log_level, *args, **kwargs)
+            string = self.formatLog(fmt, log_level)  # , *args, **kwargs)
             self.set_console_color(self.debug_color)
             try:
                 sys.stderr.write(string)
@@ -234,49 +234,49 @@ class Logger():
                 pass
             self.set_console_color(self.reset_color)
         elif log_level == 10:
-            self.debug(fmt, *args, **kwargs)
+            self.debug(fmt)  # , *args, **kwargs)
         elif log_level == 20:
-            self.info(fmt, *args, **kwargs)
+            self.info(fmt)  # , *args, **kwargs)
         elif log_level == 30:
-            self.warning(fmt, *args, **kwargs)
+            self.warning(fmt)  # , *args, **kwargs)
         elif log_level == 40:
-            self.error(fmt, *args, **kwargs)
+            self.error(fmt)  # , *args, **kwargs)
         elif log_level == 50:
-            self.critical(fmt, *args, **kwargs)
+            self.critical(fmt)  # , *args, **kwargs)
         else:
             print("log level not support: {0}".format(log_level))
 
-    def debug(self, fmt, *args, **kwargs):
+    def debug(self, fmt):  # , *args, **kwargs):
         if self.min_level > DEBUG:
             return
-        self.log(DEBUG, self.debug_color, '21610b', fmt, *args, **kwargs)
+        self.log(DEBUG, self.debug_color, '21610b', fmt)  # , *args, **kwargs)
 
-    def info(self, fmt, *args, **kwargs):
+    def info(self, fmt):  # , *args, **kwargs):
         if self.min_level > INFO:
             return
-        self.log(INFO, self.reset_color, '000000', fmt, *args, **kwargs)
+        self.log(INFO, self.reset_color, '000000', fmt)  # , *args, **kwargs)
 
-    def warning(self, fmt, *args, **kwargs):
+    def warning(self, fmt):  # , *args, **kwargs):
         if self.min_level > WARN:
             return
-        self.log(WARN, self.warn_color, 'FF8000', fmt, *args, **kwargs)
+        self.log(WARN, self.warn_color, 'FF8000', fmt)  # , *args, **kwargs)
 
-    def warn(self, fmt, *args, **kwargs):
-        self.warning(fmt, *args, **kwargs)
+    def warn(self, fmt):  # , *args, **kwargs):
+        self.warning(fmt)  # , *args, **kwargs)
 
-    def error(self, fmt, *args, **kwargs):
+    def error(self, fmt):  # , *args, **kwargs):
         if self.min_level > ERROR:
             return
-        self.log(ERROR, self.err_color, 'FE2E2E', fmt, *args, **kwargs)
+        self.log(ERROR, self.err_color, 'FE2E2E', fmt)  # , *args, **kwargs)
 
-    def exception(self, fmt, *args, **kwargs):
-        self.error(fmt, *args, **kwargs)
-        self.error("Except stack:%s", traceback.format_exc(), **kwargs)
+    def exception(self, fmt):  # , *args, **kwargs):
+        self.error(fmt)  # , *args, **kwargs)
+        self.error("Except stack:%s", traceback.format_exc())  # , **kwargs)
 
-    def critical(self, fmt, *args, **kwargs):
+    def critical(self, fmt):  # , *args, **kwargs):
         if self.min_level > CRITICAL:
             return
-        self.log('CRITICAL', self.err_color, 'D7DF01', fmt, *args, **kwargs)
+        self.log('CRITICAL', self.err_color, 'D7DF01')  # , fmt, *args, **kwargs)
 
     # =================================================================
     # def setBufferSize(self, set_size):
