@@ -2223,9 +2223,14 @@ class ConfigFile():
         conf = []
         for a in self._conf_data.keys():
             value, remark = self._conf_data.get(a)
-            if not remark.startswith('#'):
-                remark = '# ' + remark
-            conf.append(u'{0}'.format(remark))
+            if type(remark) is str:
+                lst_remark = [remark]
+            else:
+                lst_remark = remark
+            for r in lst_remark:
+                if not r.startswith('#'):
+                    r = '# ' + r
+                conf.append(u'{0}'.format(r))
             conf.append(u'{0}={1}'.format(a, value))
 
         with open(self._conf_file, 'w') as f:
@@ -2244,17 +2249,17 @@ class ConfigFile():
         else:
             with open(self._conf_file, 'r') as f:
                 conf = f.readlines()
-                remark = ''
+                remark = []
                 for c in conf:
                     c = c.strip()
                     if len(c) == 0:
                         continue
                     if c.startswith('#'):
-                        remark += c
-                    if c.find('=') > 0:
+                        remark.append(c)
+                    elif c.find('=') > 0:
                         a, b = c.split('=')
-                        self._conf_data[a.strip()] = (b.strip(), remark.strip())
-                        remark = ''
+                        self._conf_data[a.strip()] = (b.strip(), remark)
+                        remark = []
                 f.close()
             self.saveConfig()
 
@@ -2274,9 +2279,11 @@ class ConfigFile():
             return False
 
         if len(remark) == 0:
-            remark = self._conf_data.get(key)[1]
-            if remark is None:
+            item = self._conf_data.get(key)
+            if item is None:
                 remark = ''
+            else:
+                remark = item[1]
         self._conf_data[key] = (value, remark)
         self.saveConfig()
         return True
