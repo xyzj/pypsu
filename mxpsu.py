@@ -2198,13 +2198,13 @@ def copyFiles(sourceDir, targetDir):
 
 class ConfigFile():
 
-    def __init__(self, conf=dict(), path=''):
+    def __init__(self, path=''):
         '''
         Args:
         conf (dict): config data, as a dict
         path (str): config file full path, default: config.conf
         '''
-        self._conf_data = conf
+        self._conf_data = dict()
         if len(path) > 0:
             self._conf_file = path
             self.loadConfig()
@@ -2223,14 +2223,14 @@ class ConfigFile():
         conf = []
         for a in self._conf_data.keys():
             value, remark = self._conf_data.get(a)
-            if type(remark) is str:
-                lst_remark = [remark]
-            else:
-                lst_remark = remark
-            for r in lst_remark:
-                if not r.startswith('#'):
-                    r = '# ' + r
-                conf.append(u'{0}'.format(r))
+            # if type(remark) is str:
+            #     lst_remark = [remark]
+            # else:
+            #     lst_remark = remark
+            # for r in lst_remark:
+            if not remark.startswith('#'):
+                remark = '# ' + remark
+            conf.append(u'{0}'.format(remark))
             conf.append(u'{0}={1}'.format(a, value))
 
         with open(self._conf_file, 'w') as f:
@@ -2249,17 +2249,17 @@ class ConfigFile():
         else:
             with open(self._conf_file, 'r') as f:
                 conf = f.readlines()
-                remark = []
+                remark = ''
                 for c in conf:
                     c = c.strip()
                     if len(c) == 0:
                         continue
                     if c.startswith('#'):
-                        remark.append(c)
+                        remark = c
                     elif c.find('=') > 0:
                         a, b = c.split('=')
                         self._conf_data[a.strip()] = (b.strip(), remark)
-                        remark = []
+                        remark = ''
                 f.close()
             self.saveConfig()
 
