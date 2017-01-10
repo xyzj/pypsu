@@ -24,7 +24,7 @@ class MXRequestHandler(tornado.web.RequestHandler):
     def write(self, chunk):
         super(MXRequestHandler, self).write(chunk)
         if self.request.method == 'POST':
-            logging.info(self.format_log(self.request.remote_ip, chunk, self.request.path, 'REP'))
+            logging.debug(self.format_log(self.request.remote_ip, chunk, self.request.path, 'REP'))
 
     # def on_finish(self):
     #     if self.request.method == 'POST' and len(self.post_log_msg) > 0:
@@ -36,8 +36,8 @@ class MXRequestHandler(tornado.web.RequestHandler):
 
     def prepare(self):
         if self.request.method == 'POST':
-            logging.info(self.format_log(self.request.remote_ip, str(self.request.arguments),
-                                         self.request.path, 'REQ'))
+            logging.debug(self.format_log(self.request.remote_ip, str(self.request.arguments),
+                                          self.request.path, 'REQ'))
 
     def format_log(self, remote_ip, msg, path='', method=''):
         return '{3} {1} ({0}) {2}'.format(remote_ip, path, msg, method)

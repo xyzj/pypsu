@@ -27,7 +27,9 @@ class Logger():
                  log_level=10,
                  file_size=1024 * 1024 * 300,
                  roll_num=19,
-                 roll_midnight=True):
+                 roll_midnight=True,
+                 console_level=0):
+        self.console_level = log_level if console_level == 0 else console_level
         self.file_max_size = file_size
         self.buffer_lock = threading.Lock()
         self.buffer = {}  # id => line
@@ -45,6 +47,9 @@ class Logger():
 
     def setBuffer(self, buffer_size):
         self.buffer_size = buffer_size
+
+    def setConsoleLevel(self, console_level):
+        self.console_level = console_level
 
     def setLevel(self, log_level):
         global LOGLEVEL
@@ -181,12 +186,13 @@ class Logger():
 
         self.buffer_lock.acquire()
         try:
-            self.set_console_color(console_color)
-            try:
-                sys.stderr.write(string)
-            except:
-                pass
-            self.set_console_color(self.reset_color)
+            if level >= self.console_level:
+                self.set_console_color(console_color)
+                try:
+                    sys.stderr.write(string)
+                except:
+                    pass
+                self.set_console_color(self.reset_color)
 
             if self.log_fd:
                 if self.roll_midnight:
@@ -341,7 +347,8 @@ def getLogger(name=None,
               log_level=10,
               file_size=1024 * 1024 * 20,
               roll_num=19,
-              roll_midnight=1):
+              roll_midnight=1,
+              console_level=0):
     """
     获取日志实例
 
@@ -362,7 +369,8 @@ def getLogger(name=None,
     if name in LOGGER_DICT:
         return LOGGER_DICT[name]
     else:
-        logger_instance = Logger(file_name, log_level, file_size, roll_num, roll_midnight)
+        logger_instance = Logger(file_name, log_level, file_size, roll_num, roll_midnight,
+                                 console_level)
         LOGGER_DICT[name] = logger_instance
         return logger_instance
 
