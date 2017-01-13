@@ -369,7 +369,8 @@ def getLogger(name=None,
     if name in LOGGER_DICT:
         return LOGGER_DICT[name]
     else:
-        logger_instance = Logger(file_name, log_level, file_size, roll_num, roll_midnight, console_level)
+        logger_instance = Logger(file_name, log_level, file_size, roll_num, roll_midnight,
+                                 console_level)
         LOGGER_DICT[name] = logger_instance
         return logger_instance
 

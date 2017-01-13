@@ -19,7 +19,12 @@ class MXRequestHandler(tornado.web.RequestHandler):
     keep_name_case = False
     cache_dir = mx.SCRIPT_DIR
 
+    _help_doc = ''
+
     # post_log_msg = []
+
+    def initialize(self, help_doc=''):
+        self.help_doc = help_doc
 
     def write(self, chunk):
         super(MXRequestHandler, self).write(chunk)
@@ -62,7 +67,7 @@ def load_handler_module(handler_module, perfix=".*$"):
     for i in dir(handler_module):
         cls = getattr(handler_module, i)
         if is_handler(cls) and has_pattern(cls):
-            handlers.append((cls.url_pattern, cls, handler_module.__name__))
+            handlers.append((cls.url_pattern, cls, handler_module.__name__, cls._help_doc))
     # self.handlers.extend(handlers)
     # self.add_handlers(perfix, handlers)
     return handlers
