@@ -3,6 +3,7 @@ cp -vf mxhpss.py mxhpss.pyx
 cp -vf mxweb.py mxweb.pyx
 cp -vf mxpsu.py mxpsu.pyx
 cp -vf mxlog.py mxlog.pyx
+cp -vf pbjson.py mxpbjson.pyx
 
 python setup.py build_ext -if
 
