@@ -18,11 +18,7 @@ import socket as _socket
 import struct as _struct
 import os as _os
 import hashlib
-# import uuid as _uuid
-# import logging
-# import logging.handlers
-# import Image as _Image
-# import platform as _platform
+import codecs
 import sys as _sys
 reload(_sys)
 _sys.setdefaultencoding(_sys.getfilesystemencoding())
@@ -2233,7 +2229,7 @@ class ConfigFile():
             conf.append(u'{0}'.format(remark))
             conf.append(u'{0}={1}'.format(a, value))
 
-        with open(self._conf_file, 'w') as f:
+        with codecs.open(self._conf_file, 'w', 'utf-8') as f:
             try:
                 f.writelines([c + self.lineend if c.startswith('#') else c + self.lineend * 2
                               for c in conf])
@@ -2247,7 +2243,7 @@ class ConfigFile():
         if not _os.path.isfile(self._conf_file):
             self.saveConfig()
         else:
-            with open(self._conf_file, 'r') as f:
+            with codecs.open(self._conf_file, 'r', 'utf-8') as f:
                 conf = f.readlines()
                 remark = ''
                 for c in conf:

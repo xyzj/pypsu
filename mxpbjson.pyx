@@ -116,7 +116,10 @@ def pb2json(obj, data=None, noformat=True):
     Takes a ProtoBuf Message obj and convertes it to a json string.
     """
     if data is not None:
-        obj.ParseFromString(data)
+        try:
+            obj.ParseFromString(data)
+        except:
+            return data
     if noformat:
         return json.dumps(pb2dict(obj), separators=(',', ':'))
     else:
@@ -127,4 +130,8 @@ def tcspb2json(obj, data):
     """
     Takes a Tcs ProtoBuf Message MsgWithCtrl and convertes it to a json string.
     """
-    return pb2json(obj, base64.b64decode(data.replace('`', '')))
+    try:
+        s = base64.b64decode(data.replace('`', ''))
+        return pb2json(obj, s)
+    except:
+        return data
