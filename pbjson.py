@@ -130,8 +130,16 @@ def tcspb2json(obj, data):
     """
     Takes a Tcs ProtoBuf Message MsgWithCtrl and convertes it to a json string.
     """
+    data = data.replace('`', '')
     try:
-        s = base64.b64decode(data.replace('`', ''))
-        return pb2json(obj, s)
-    except:
+        s = json.loads(data)
+        del s
         return data
+    except:
+        x = base64.b64decode(data)
+        a = pb2json(obj, x)
+        if a == x:
+            return data
+        else:
+            return a
+        
