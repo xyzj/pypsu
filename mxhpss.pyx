@@ -504,13 +504,14 @@ class MXIOLoop(object):
             fdlock (bool, optional): 是否加锁
             debug (bool, optional): 是否输出调试信息
         """
-        if debug:
-            self.selectWorker(fd, eve)
-        else:
-            try:
-                self.selectWorker(fd, eve)
-            except Exception as ex:
-                print("main loop error:", ex)
+        self.selectWorker(fd, eve)
+        # if debug:
+        #     self.selectWorker(fd, eve)
+        # else:
+        #     try:
+        #         self.selectWorker(fd, eve)
+        #     except Exception as ex:
+        #         print("main loop error:", ex)
 
     def selectWorker(self, fn, eve):
         """

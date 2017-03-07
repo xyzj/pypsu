@@ -136,10 +136,13 @@ def tcspb2json(obj, data):
         del s
         return data
     except:
-        x = base64.b64decode(data)
-        a = pb2json(obj, x)
-        if a == x:
+        try:
+            x = base64.b64decode(data)
+            a = pb2json(obj, x)
+            if a == x:
+                return data
+            else:
+                return a
+        except:
             return data
-        else:
-            return a
         
