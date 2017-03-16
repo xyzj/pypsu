@@ -9,6 +9,7 @@ import time
 import os
 import mxpsu as mx
 import zlib
+import codecs
 import logging
 import base64
 
@@ -25,6 +26,16 @@ class MXRequestHandler(tornado.web.RequestHandler):
 
     def initialize(self, help_doc=''):
         self.help_doc = help_doc
+        self.salt = ''
+        if os.path.isfile('.salt'):
+            try:
+                with codecs.open('.salt', 'r', 'utf-8') as f:
+                    self.salt = f.readline().replace('\r', '').replace('\n', '')
+                    f.close()
+            except:
+                pass
+        if len(self.salt) == 0:
+            self.salt = '3a533ba0'
 
     def write(self, chunk):
         super(MXRequestHandler, self).write(chunk)
@@ -48,14 +59,20 @@ class MXRequestHandler(tornado.web.RequestHandler):
         return '{3} {1} ({0}) {2}'.format(remote_ip, path, msg, method)
 
     def computing_security_code(self, scode):
-        x = set([mx.getMD5('{0}3a533ba0'.format(mx.stamp2time(time.time(),
-                                                              format_type='%Y%m%d%H')))])
+        x = set([mx.getMD5('{0}{1}'.format(
+            mx.stamp2time(time.time(),
+                          format_type='%Y%m%d%H'),
+            self.salt))])
         if time.localtime()[4] >= 55:
-            x.add(mx.getMD5('{0}3a533ba0'.format(mx.stamp2time(time.time() + 360,
-                                                               format_type='%Y%m%d%H'))))
+            x.add(mx.getMD5('{0}{1}'.format(
+                mx.stamp2time(time.time() + 360,
+                              format_type='%Y%m%d%H'),
+                self.salt)))
         elif time.localtime()[4] < 5:
-            x.add(mx.getMD5('{0}3a533ba0'.format(mx.stamp2time(time.time() - 360,
-                                                               format_type='%Y%m%d%H'))))
+            x.add(mx.getMD5('{0}{1}'.format(
+                mx.stamp2time(time.time() - 360,
+                              format_type='%Y%m%d%H'),
+                self.salt)))
 
         return 1 if scode.lower() in x else 0
 

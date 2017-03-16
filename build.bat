@@ -7,5 +7,5 @@ copy /Y pbjson.py mxpbjson.pyx
 
 python setup_nt.py build_ext -fi
 copy /Y mx*.pyd c:\Python27\Lib\site-packages\
-copy /Y mx*.pyd ..\mwsc\dist\pytcs-win\
-del /Q ..\mwsc\dist\pytcs-win\mxsp_nt.pyd
+copy /Y mx*.pyd ..\mwsc\dist\bin\
+del /Q ..\mwsc\dist\bin\mxsp_nt.pyd
