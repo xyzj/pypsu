@@ -2152,17 +2152,19 @@ class GetchWindows():
             pass
 
 
-def get_dirs(parentdir, subdir):
+def get_dirs(parentdir, subdir=''):
     '''
     Returns: confdir, logdir, cachedir
     '''
+    if len(subdir) > 0:
+        subdir = '{0}.d'.format(subdir)
     if Platform.isLinux():
         # 配置文件目录
-        CONF_DIR = _os.path.join("/", "etc", parentdir, '{0}.d'.format(subdir))
+        CONF_DIR = _os.path.join("/", "etc", parentdir, subdir)
         # 日志文件目录
-        LOG_DIR = _os.path.join("/", "var", "log", parentdir, '{0}.d'.format(subdir))
+        LOG_DIR = _os.path.join("/", "var", "log", parentdir, subdir)
         # 缓存文件目录
-        CACHE_DIR = _os.path.join("/", "var", "cache", parentdir, '{0}.d'.format(subdir))
+        CACHE_DIR = _os.path.join("/", "var", "cache", parentdir, subdir)
         mkdirs(CONF_DIR)
         mkdirs(LOG_DIR)
         mkdirs(CACHE_DIR)
@@ -2226,8 +2228,8 @@ class ConfigFile():
             # for r in lst_remark:
             if not remark.startswith('#'):
                 remark = '# ' + remark
-            conf.append(u'{0}'.format(remark))
-            conf.append(u'{0}={1}'.format(a, value))
+            conf.append('{0}'.format(remark))
+            conf.append('{0}={1}'.format(a, value))
 
         with codecs.open(self._conf_file, 'w', 'utf-8') as f:
             try:
