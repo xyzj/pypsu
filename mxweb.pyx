@@ -13,29 +13,42 @@ import codecs
 import logging
 import base64
 
+__salt = ''
+if os.path.isfile('.salt'):
+    try:
+        with codecs.open('.salt', 'r', 'utf-8') as f:
+            __salt = f.readline().replace('\r', '').replace('\n', '')
+            f.close()
+    except:
+        pass
+if len(__salt) == 0:
+    __salt = '3a533ba0'
+
 
 class MXRequestHandler(tornado.web.RequestHandler):
 
     url_pattern = None
-    keep_name_case = False
+    salt = None
     cache_dir = mx.SCRIPT_DIR
 
-    _help_doc = ''
+    keep_name_case = False
+    help_doc = ''
+    root_path = r'/'
 
     # post_log_msg = []
 
     def initialize(self, help_doc=''):
         self.help_doc = help_doc
-        self.salt = ''
-        if os.path.isfile('.salt'):
-            try:
-                with codecs.open('.salt', 'r', 'utf-8') as f:
-                    self.salt = f.readline().replace('\r', '').replace('\n', '')
-                    f.close()
-            except:
-                pass
-        if len(self.salt) == 0:
-            self.salt = '3a533ba0'
+    #     self.salt = ''
+    #     if os.path.isfile('.salt'):
+    #         try:
+    #             with codecs.open('.salt', 'r', 'utf-8') as f:
+    #                 self.salt = f.readline().replace('\r', '').replace('\n', '')
+    #                 f.close()
+    #         except:
+    #             pass
+    #     if len(self.salt) == 0:
+    #         self.salt = '3a533ba0'
 
     def write(self, chunk):
         super(MXRequestHandler, self).write(chunk)
@@ -84,7 +97,7 @@ def load_handler_module(handler_module, perfix=".*$"):
     for i in dir(handler_module):
         cls = getattr(handler_module, i)
         if is_handler(cls) and has_pattern(cls):
-            handlers.append((cls.url_pattern, cls, handler_module.__name__, cls._help_doc))
+            handlers.append((cls.url_pattern, cls, handler_module.__name__, cls.help_doc))
     # self.handlers.extend(handlers)
     # self.add_handlers(perfix, handlers)
     return handlers
@@ -94,14 +107,16 @@ def route():
 
     def handler_wapper(cls):
         assert (issubclass(cls, MXRequestHandler))
+        if cls.salt is None:
+            cls.salt = __salt
         if cls.url_pattern is None or not cls.url_pattern.startswith(r'/'):
             if cls.__name__ == 'MainHandler':
-                cls.url_pattern = r'/'
+                cls.url_pattern = cls.root_path
             else:
                 if cls.keep_name_case:
-                    cls.url_pattern = r'/' + cls.__name__[:-7]
+                    cls.url_pattern = cls.root_path + cls.__name__[:-7]
                 else:
-                    cls.url_pattern = r'/' + cls.__name__[:-7].lower()
+                    cls.url_pattern = cls.root_path + cls.__name__[:-7].lower()
         return cls
 
     return handler_wapper
