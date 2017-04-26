@@ -23,7 +23,7 @@ class MXMariadb(object):
                        8: int,
                        9: int},
                  flag=32 | 65536 | 131072,
-                 maxconn=10):
+                 maxconn=20):
         """mariadb访问类初始化
         Args:    
             host: mariadb服务器名
@@ -39,7 +39,7 @@ class MXMariadb(object):
         self.__pwd = pwd
         self.__conv = conv
         self.__flag = flag
-        self.__conn_queue = Queue.Queue()
+        self.__conn_queue = Queue.Queue(20)
         self.__error_msg = ''
         self.__show_debug = False
 
@@ -117,7 +117,7 @@ class MXMariadb(object):
         try:
             conn.query(strsql)
         except Exception as ex:
-            self.__error_msg = '_mysql no fetch error: {0}'.format(ex)
+            self.__error_msg = '_mysql exec error: {0}'.format(ex)
             if self.__show_debug:
                 print(self.__error_msg)
         else:
