@@ -43,6 +43,12 @@ class MXMariadb(object):
         self.__error_msg = ''
         self.__show_debug = False
 
+    def __del__(self):
+        while self.__conn_queue.qsize() > 0:
+            cn = self.__conn_queue.get_nowait()
+            cn.close()
+            del cn
+
     def __get_conn(self):
         try:
             return self.__conn_queue.get_nowait()
@@ -76,11 +82,11 @@ class MXMariadb(object):
         Return:
             结果集的迭代器'''
         if len(strsql) == 0:
-            yield None
+            return None
         else:
             conn = self.__get_conn()
             if conn is None:
-                yield None
+                return None
             else:
                 try:
                     conn.query(strsql)
@@ -91,15 +97,10 @@ class MXMariadb(object):
                 else:
                     cur = conn.use_result()
                     if cur is not None:
-                        while True:
-                            d = cur.fetch_row(619)
-                            if len(d) == 0:
-                                break
-                            else:
-                                for i in d:
-                                    yield i
+                        d = cur.fetch_row(0)
+                        return d
                     else:
-                        yield None
+                        return None
                     del cur
                 self.__put_conn(conn)
 
@@ -136,13 +137,3 @@ class MXMariadb(object):
 
     def set_debug(self, debug):
         self.__show_debug = debug
-    # def run_sql(self, strsql, need_fetch=0):
-    #     """执行sql语句
-    #     Args:
-    #         need_fetch: 是否需要返回结果集,默认0-不返回,1-返回
-    #     """
-    #     if need_fetch:
-    #         print('fetch')
-    #         self.run_fetch(strsql)
-    #     else:
-    #         self.run_exec(strsql)

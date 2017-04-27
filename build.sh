@@ -9,7 +9,10 @@ cp -vf mxsql.py mxsql.pyx
 python setup.py build_ext -if
 
 #sudo cp -vf /tmp/mx*.so /usr/lib/python2.7/site-packages/
+
+# cp -vf mxsql.so /home/xy/work/python/lump/
 sudo cp -vf mx*.so /usr/lib64/python2.7/site-packages/
+
 #sudo cp -vf /tmp/mxhpss_comm.so /usr/lib/python2.7/site-packages/
 #sudo cp -vf /tmp/mxhpss_comm.so /usr/lib/python2.7/dist-packages/
 #sudo cp -vf /tmp/mxpsu.so /usr/lib/python2.7/site-packages/
