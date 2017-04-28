@@ -33,46 +33,46 @@ class MXMariadb(object):
             conv: 字段类型自动转换设置
             flag: 客户端访问标记,默认压缩,允许多语句提交,允许多结果集
         """
-        self.__host = host
-        self.__port = port
-        self.__user = user
-        self.__pwd = pwd
-        self.__conv = conv
-        self.__flag = flag
-        self.__conn_queue = Queue.Queue(20)
-        self.__error_msg = ''
-        self.__show_debug = False
+        self.host = host
+        self.port = port
+        self.user = user
+        self.pwd = pwd
+        self.conv = conv
+        self.flag = flag
+        self.conn_queue = Queue.Queue(20)
+        self.error_msg = ''
+        self.show_debug = False
 
     def __del__(self):
-        while self.__conn_queue.qsize() > 0:
-            cn = self.__conn_queue.get_nowait()
+        while self.conn_queue.qsize() > 0:
+            cn = self.conn_queue.get_nowait()
             cn.close()
             del cn
 
-    def __get_conn(self):
+    def get_conn(self):
         try:
-            return self.__conn_queue.get_nowait()
+            return self.conn_queue.get_nowait()
         except:
             try:
-                cn = mysql.connect(host=self.__host,
-                                   port=self.__port,
-                                   user=self.__user,
-                                   passwd=self.__pwd,
-                                   conv=self.__conv,
-                                   client_flag=self.__flag,
+                cn = mysql.connect(host=self.host,
+                                   port=self.port,
+                                   user=self.user,
+                                   passwd=self.pwd,
+                                   conv=self.conv,
+                                   client_flag=self.flag,
                                    connect_timeout=7)
                 cn.set_character_set('utf8')
             except Exception as ex:
-                self.__error_msg = '_mysql conn error: {0}'.format(ex)
-                if self.__show_debug:
-                    print(self.__error_msg)
+                self.error_msg = '_mysql conn error: {0}'.format(ex)
+                if self.show_debug:
+                    print(self.error_msg)
                 return None
             else:
                 return cn
 
-    def __put_conn(self, conn):
+    def put_conn(self, conn):
         try:
-            self.__conn_queue.put_nowait(conn)
+            self.conn_queue.put_nowait(conn)
         except:
             pass
 
@@ -80,20 +80,20 @@ class MXMariadb(object):
         '''数据库访问方法，
             用于执行select类语句
         Return:
-            结果集的迭代器'''
+            结果集的集和'''
         if len(strsql) == 0:
             return None
         else:
-            conn = self.__get_conn()
+            conn = self.get_conn()
             if conn is None:
                 return None
             else:
                 try:
                     conn.query(strsql)
                 except Exception as ex:
-                    self.__error_msg = '_mysql fetch error: {0}'.format(ex)
-                    if self.__show_debug:
-                        print(self.__error_msg)
+                    self.error_msg = '_mysql fetch error: {0}'.format(ex)
+                    if self.show_debug:
+                        print(self.error_msg)
                 else:
                     cur = conn.use_result()
                     if cur is not None:
@@ -102,7 +102,7 @@ class MXMariadb(object):
                     else:
                         return None
                     del cur
-                self.__put_conn(conn)
+                self.put_conn(conn)
 
     def run_exec(self, strsql):
         '''数据库访问方法
@@ -111,16 +111,16 @@ class MXMariadb(object):
             [(affected_rows,insert_id),...]'''
         if len(strsql) == 0:
             return None
-        conn = self.__get_conn()
+        conn = self.get_conn()
         if conn is None:
             return None
         x = []
         try:
             conn.query(strsql)
         except Exception as ex:
-            self.__error_msg = '_mysql exec error: {0}'.format(ex)
-            if self.__show_debug:
-                print(self.__error_msg)
+            self.error_msg = '_mysql exec error: {0}'.format(ex)
+            if self.show_debug:
+                print(self.error_msg)
         else:
             conn.use_result()
             x.append((conn.affected_rows(), conn.insert_id()))
@@ -129,11 +129,11 @@ class MXMariadb(object):
                 #     break
                 x.append((conn.affected_rows(), conn.insert_id()))
 
-        self.__put_conn(conn)
+        self.put_conn(conn)
         return x
 
     def get_last_error_message(self):
-        return self.__error_msg
+        return self.error_msg
 
     def set_debug(self, debug):
-        self.__show_debug = debug
+        self.show_debug = debug
