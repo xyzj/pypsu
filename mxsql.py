@@ -98,10 +98,11 @@ class MXMariadb(object):
                     cur = conn.use_result()
                     if cur is not None:
                         d = cur.fetch_row(0)
+                        del cur
                         return d
                     else:
+                        del cur
                         return None
-                    del cur
                 self.put_conn(conn)
 
     def run_exec(self, strsql):

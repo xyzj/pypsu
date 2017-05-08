@@ -31,11 +31,12 @@ if Platform.isLinux():
     IMPL = _select.epoll()
     _ERROR = _EPOLLERR | _EPOLLHUP
     READ = _EPOLLIN | _ERROR
-    WRITE = _EPOLLOUT | READ
-    WRITE_ONLY = _EPOLLOUT | _ERROR
+    READ_WRITE = _EPOLLOUT | READ
+    WRITE = _EPOLLOUT | _ERROR
 else:
     IMPL = _select.select
     READ = set()
+    READ_WRITE = set()
     WRITE = set()
 
 # 客户端集合{fileno, ClientSession}
@@ -50,23 +51,30 @@ def register(fileno, objwatch, ssock=None):
         objwatch (object): 监控事件
         ssock (socket): 用于监听的socket实例
     """
-    global READ, WRITE, CLIENTS, IMPL
+    global READ, WRITE, CLIENTS, IMPL, WRITE_ONLY
     if Platform.isLinux():
         try:
             IMPL.register(fileno, objwatch)
         except:
             return
     else:
-        if ssock is not None:
-            READ.add(ssock)
-        else:
-            sock = CLIENTS.get(fileno)
-            if sock is not None:
-                if objwatch is READ:
-                    READ.add(sock.sock)
-                elif objwatch is WRITE:
-                    READ.add(sock.sock)
-                    WRITE.add(sock.sock)
+        if objwatch is READ:
+            READ.add(fileno)
+        elif objwatch is READ_WRITE:
+            READ.add(fileno)
+            WRITE.add(fileno)
+        elif objwatch is WRITE:
+            WRITE.add(fileno)
+        # if ssock is not None:
+        #     READ.add(ssock)
+        # else:
+        #     sock = CLIENTS.get(fileno)
+        #     if sock is not None:
+        #         if objwatch is READ:
+        #             READ.add(sock.sock)
+        #         elif objwatch is WRITE:
+        #             READ.add(sock.sock)
+        #             WRITE.add(sock.sock)
 
 
 def modify(fileno, objwatch):
@@ -77,22 +85,36 @@ def modify(fileno, objwatch):
         fileno (object): fd或socket实例
         objwatch (object): 监控事件
     """
-    global READ, WRITE, CLIENTS, IMPL
+    global READ, WRITE, CLIENTS, IMPL, WRITE_ONLY
     if Platform.isLinux():
         try:
             IMPL.modify(fileno, objwatch)
         except:
             return
     else:
-        sock = CLIENTS.get(fileno)
-        if sock is not None:
-            if objwatch is READ:
-                try:
-                    WRITE.remove(sock.sock)
-                except:
-                    pass
-            elif objwatch is WRITE:
-                WRITE.add(sock.sock)
+        if objwatch is READ:
+            try:
+                WRITE.remove(fileno)
+            except:
+                pass
+        elif objwatch is READ_WRITE:
+            WRITE.add(fileno)
+            READ.add(fileno)
+        elif objwatch is WRITE:
+            try:
+                READ.remove(fileno)
+            except:
+                pass
+            WRITE.add(fileno)
+        # sock = CLIENTS.get(fileno)
+        # if sock is not None:
+        #     if objwatch is READ:
+        #         try:
+        #             WRITE.remove(sock.sock)
+        #         except:
+        #             pass
+        #     elif objwatch is WRITE:
+        #         WRITE.add(sock.sock)
 
 
 def unregister(fileno):
@@ -102,23 +124,35 @@ def unregister(fileno):
     Args:
         fileno (object): fd或socket实例
     """
-    global READ, WRITE, CLIENTS, IMPL
+    global READ, WRITE, CLIENTS, IMPL, WRITE_ONLY
     if Platform.isLinux():
         try:
             IMPL.unregister(fileno)
         except:
             pass
     else:
-        sock = CLIENTS.get(fileno)
-        if sock is not None:
-            try:
-                READ.remove(sock.sock)
-            except:
-                pass
-            try:
-                WRITE.remove(sock.sock)
-            except:
-                pass
+        try:
+            READ.remove(fileno)
+        except:
+            pass
+        try:
+            WRITE.remove(fileno)
+        except:
+            pass
+        try:
+            READ_WRITE.remove(fileno)
+        except:
+            pass
+        # sock = CLIENTS.get(fileno)
+        # if sock is not None:
+        #     try:
+        #         READ.remove(sock.sock)
+        #     except:
+        #         pass
+        #     try:
+        #         WRITE.remove(sock.sock)
+        #     except:
+        #         pass
 
 
 cdef __destroy_license(str strlic, str licpath='LICENSE'):

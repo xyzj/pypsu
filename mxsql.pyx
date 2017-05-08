@@ -42,7 +42,6 @@ class MXMariadb(object):
         self.conn_queue = Queue.Queue(20)
         self.error_msg = ''
         self.show_debug = False
-        print('in so')
 
     def __del__(self):
         while self.conn_queue.qsize() > 0:
@@ -52,7 +51,6 @@ class MXMariadb(object):
 
     def get_conn(self):
         try:
-            print('get conn')
             return self.conn_queue.get_nowait()
         except:
             try:
@@ -64,7 +62,6 @@ class MXMariadb(object):
                                    client_flag=self.flag,
                                    connect_timeout=7)
                 cn.set_character_set('utf8')
-                print(cn)
             except Exception as ex:
                 self.error_msg = '_mysql conn error: {0}'.format(ex)
                 if self.show_debug:
@@ -101,10 +98,11 @@ class MXMariadb(object):
                     cur = conn.use_result()
                     if cur is not None:
                         d = cur.fetch_row(0)
+                        del cur
                         return d
                     else:
+                        del cur
                         return None
-                    del cur
                 self.put_conn(conn)
 
     def run_exec(self, strsql):
