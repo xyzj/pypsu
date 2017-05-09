@@ -14,15 +14,18 @@ import logging
 import base64
 
 __salt = ''
-if os.path.isfile('.salt'):
+p = os.path.join(mx.SCRIPT_DIR, '.salt')
+if os.path.isfile(p):
     try:
-        with codecs.open('.salt', 'r', 'utf-8') as f:
+        with codecs.open(p, 'r', 'utf-8') as f:
             __salt = f.readline().replace('\r', '').replace('\n', '')
             f.close()
     except:
         pass
 if len(__salt) == 0:
     __salt = '3a533ba0'
+
+del p
 
 
 class MXRequestHandler(tornado.web.RequestHandler):
