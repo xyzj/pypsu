@@ -7,6 +7,7 @@ __doc__ = 'tornado web handler rewrite'
 import tornado
 import time
 import os
+import json
 import mxpsu as mx
 import zlib
 import codecs
@@ -14,6 +15,10 @@ import logging
 import base64
 
 __salt = ''
+__sd = 0
+p = os.path.join(mx.SCRIPT_DIR, '.sd')
+if os.path.isfile(p):
+    __sd = 1
 p = os.path.join(mx.SCRIPT_DIR, '.salt')
 if os.path.isfile(p):
     try:
@@ -38,6 +43,8 @@ class MXRequestHandler(tornado.web.RequestHandler):
     help_doc = ''
     root_path = r'/'
 
+    sd = 0
+
     # post_log_msg = []
 
     def initialize(self, help_doc=''):
@@ -54,6 +61,8 @@ class MXRequestHandler(tornado.web.RequestHandler):
     #         self.salt = '3a533ba0'
 
     def write(self, chunk):
+        if self.sd:
+            chunk = ''
         super(MXRequestHandler, self).write(chunk)
         if self.request.method == 'POST':
             logging.debug(self.format_log(self.request.remote_ip, chunk, self.request.path, 'REP'))
@@ -68,8 +77,29 @@ class MXRequestHandler(tornado.web.RequestHandler):
 
     def prepare(self):
         if self.request.method == 'POST':
-            logging.debug(self.format_log(self.request.remote_ip, str(self.request.arguments),
-                                          self.request.path, 'REQ'))
+            x = ','.join(self.get_arguments('pb2')).replace('\r', '').replace('\n', '')
+            if len(x) > 0:
+                logging.debug(self.format_log(self.request.remote_ip, x, self.request.path, 'REQ'))
+            else:
+                logging.debug(self.format_log(self.request.remote_ip,
+                                              json.dumps(self.request.arguments,
+                                                         separators=(',', ':')),
+                                              self.request.path,
+                                              'REQ'))
+            del x
+        elif self.request.method == 'GET':
+            jobs = self.get_arguments('do')
+            for do in jobs:
+                if do == 'shutdown':
+                    if self.sd == 0:
+                        self.sd = 1
+                        try:
+                            with codecs.open(os.path.join(mx.SCRIPT_DIR, '.sd'), 'w', 'utf-8') as f:
+                                f.write(str(time.time()))
+                                f.close()
+                        except:
+                            pass
+                    break
 
     def format_log(self, remote_ip, msg, path='', method=''):
         return '{3} {1} ({0}) {2}'.format(remote_ip, path, msg, method)
@@ -112,6 +142,7 @@ def route():
         assert (issubclass(cls, MXRequestHandler))
         if cls.salt is None:
             cls.salt = __salt
+            cls.sd = __sd
         if cls.url_pattern is None or not cls.url_pattern.startswith(r'/'):
             if cls.__name__ == 'MainHandler':
                 cls.url_pattern = cls.root_path
