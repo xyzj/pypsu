@@ -39,7 +39,7 @@ class MXMariadb(object):
         self.pwd = pwd
         self.conv = conv
         self.flag = flag
-        self.conn_queue = Queue.Queue(20)
+        self.conn_queue = Queue.Queue(7)
         self.error_msg = ''
         self.show_debug = False
 
@@ -50,9 +50,15 @@ class MXMariadb(object):
             del cn
 
     def get_conn(self):
+        '''获取mysql连接'''
         try:
-            return self.conn_queue.get_nowait()
-        except:
+            cn = self.conn_queue.get_nowait()
+            if not cn.stat().startswith('Uptime:'):
+                cn.close()
+                del cn
+                raise Exception('MySQL server has something wrong')
+            return cn
+        except Exception as ex:
             try:
                 cn = mysql.connect(host=self.host,
                                    port=self.port,
@@ -71,10 +77,21 @@ class MXMariadb(object):
                 return cn
 
     def put_conn(self, conn):
+        '''回收mysql连接'''
         try:
             self.conn_queue.put_nowait(conn)
         except:
-            pass
+            conn.close()
+            del conn
+
+    def get_last_error_message(self):
+        '''获取最近一次操作产生的错误信息, 获取后清空'''
+        s = self.error_msg
+        self.error_msg = ''
+        return s
+
+    def set_debug(self, debug):
+        self.show_debug = debug
 
     def run_fetch(self, strsql):
         '''数据库访问方法，
@@ -108,7 +125,7 @@ class MXMariadb(object):
     def run_exec(self, strsql):
         '''数据库访问方法
             用于执行delet，insert，update语句，支持多条语句一起提交，用‘;’分割
-            Return:
+        Return:
             [(affected_rows,insert_id),...]'''
         if len(strsql) == 0:
             return None
@@ -122,19 +139,13 @@ class MXMariadb(object):
             self.error_msg = '_mysql exec error: {0}'.format(ex)
             if self.show_debug:
                 print(self.error_msg)
+            conn.close()
+            del conn
         else:
             conn.use_result()
             x.append((conn.affected_rows(), conn.insert_id()))
             while conn.next_result() > -1:
-                # if conn.next_result() == -1:
-                #     break
                 x.append((conn.affected_rows(), conn.insert_id()))
 
-        self.put_conn(conn)
+            self.put_conn(conn)
         return x
-
-    def get_last_error_message(self):
-        return self.error_msg
-
-    def set_debug(self, debug):
-        self.show_debug = debug
