@@ -12,7 +12,7 @@ class MXMariadb(object):
 
     def __init__(self,
                  host='127.0.0.1',
-                 port=3006,
+                 port=3306,
                  user='root',
                  pwd='1234',
                  conv={1: int,
@@ -109,18 +109,25 @@ class MXMariadb(object):
                     conn.query(strsql)
                 except Exception as ex:
                     self.error_msg = '_mysql fetch error: {0}'.format(ex)
+                    try:
+                        conn.close()
+                    except:
+                        pass
+                    else:
+                        del conn
+                    
                     if self.show_debug:
                         print(self.error_msg)
                 else:
                     cur = conn.use_result()
+                    d = None
                     if cur is not None:
                         d = cur.fetch_row(0)
                         del cur
-                        return d
                     else:
                         del cur
-                        return None
-                self.put_conn(conn)
+                    self.put_conn(conn)
+                    return d
 
     def run_exec(self, strsql):
         '''数据库访问方法
