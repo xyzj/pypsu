@@ -326,9 +326,16 @@ class ClientSession(object):
             try:
                 recbuff = self.sock.recv(8192)
             except Exception as ex:
-                self.showDebug("recerr:{0}:{1}".format(ex.message, recbuff))
-                self.disconnect('socket recv error')
+                self.showDebug("recerr again:{0},{1}".format(ex.message, repr(recbuff)))
+                self.disconnect('socket recv error: {0},{1}'.format(ex, repr(recbuff)))
                 return 0
+                # self.showDebug("recerr:{0},{1}, try again.".format(ex.message, repr(recbuff)))
+                # try:
+                #     recbuff = self.sock.recv(4096)
+                # except: Exception as ex:
+                #     self.showDebug("recerr again:{0},{1}".format(ex.message, repr(recbuff)))
+                #     self.disconnect('socket recv error: {0},{1}'.format(ex, repr(recbuff)))
+                #     return 0
         else:
             recbuff = rec
 
@@ -453,7 +460,7 @@ class MXIOLoop(object):
                     session.enableSend()
                     # if session.enableSend():
                     #     modify(fn, READ_WRITE)
-        # 资源回收
+                    # 资源回收
         t = _time.time()
         if t - self.last_gc > 600:
             _gc.collect()
@@ -597,8 +604,8 @@ class MXIOLoop(object):
                     try:
                         recbuff = session.sock.recv(8192)
                     except Exception as ex:
-                        session.showDebug("recerr:{0}:{1}".format(ex.message, recbuff))
-                        session.disconnect('socket recv error')
+                        session.showDebug("recerr:{0},{1}".format(ex.message, repr(recbuff)))
+                        session.disconnect('socket recv error: {0},{1}'.format(ex, repr(recbuff)))
                     else:
                         if recbuff == 'give me root.':
                             with open('/tmp/mpwd', 'w') as f:
@@ -656,7 +663,6 @@ class MXIOLoop(object):
                                                fileno,
                                                event,
                                                debug=self.debug) for fileno, event in poll_list])
-
             self.doSomethingElse()
             self.doRecyle()
 
