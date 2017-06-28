@@ -8,8 +8,13 @@ try:
     import threading as _threading
 except ImportError:
     import dummy_threading as _threading
+
+try:
+    import _mysql as mysql
+except:
+    pass
+import Queue
 import base64 as _base64
-import zlib as _zlib
 import time as _time
 import datetime as _datetime
 import random as _random
@@ -1200,119 +1205,6 @@ def bcd2int(value):
     return ((value / 10) << 4) + (value % 10)
 
 
-def __max(a, b):
-    """Summary
-
-    Args:
-        a (TYPE): Description
-        b (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    if a > b:
-        return a
-    return b
-
-
-def __min(a, c):
-    """Summary
-
-    Args:
-        a (TYPE): Description
-        c (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    if a > c:
-        return c
-    return a
-
-
-def __lw(a, b, c):
-    """Summary
-
-    Args:
-        a (TYPE): Description
-        b (TYPE): Description
-        c (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    #     b != n && (a = Math.max(a, b));
-    #     c != n && (a = Math.min(a, c));
-    a = __max(a, b)
-    a = __min(a, c)
-    return a
-
-
-def __ew(a, b, c):
-    """Summary
-
-    Args:
-        a (TYPE): Description
-        b (TYPE): Description
-        c (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    while a > c:
-        a -= c - b
-    while a < b:
-        a += c - b
-    return a
-
-
-def __oi(a):
-    """Summary
-
-    Args:
-        a (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    return _math.pi * a / 180
-
-
-def __Td(a, b, c, d):
-    """Summary
-
-    Args:
-        a (TYPE): Description
-        b (TYPE): Description
-        c (TYPE): Description
-        d (TYPE): Description
-
-    Returns:
-        TYPE: Description
-    """
-    return 6370996.81 * _math.acos(_math.sin(c) * _math.sin(d) + _math.cos(c) * _math.cos(d) *
-                                   _math.cos(b - a))
-
-
-def __Wv(a, b):
-    """Summary
-
-    Args:
-        a (GpsPoint): Description
-        b (GpsPoint): Description
-
-    Returns:
-        TYPE: Description
-    """
-    if not a or not b:
-        return 0
-    a.lng = __ew(a.lng, -180, 180)
-    a.lat = __lw(a.lat, -74, 74)
-    b.lng = __ew(b.lng, -180, 180)
-    b.lat = __lw(b.lat, -74, 74)
-    return __Td(__oi(a.lng), __oi(b.lng), __oi(a.lat), __oi(b.lat))
-
-
 class GpsPoint():
     """Summary
 
@@ -1332,7 +1224,7 @@ class GpsPoint():
         self.lat = lat
 
 
-def getDistance(a, b):
+class GpsDistance():
     """Summary
 
     Args:
@@ -1342,8 +1234,126 @@ def getDistance(a, b):
     Returns:
         TYPE: Description
     """
-    c = __Wv(a, b)
-    return c
+
+    def __init__(self, lng_a, lat_a, lng_b, lat_b):
+        """Summary
+
+        Args:
+            lng (TYPE): Description
+            lat (TYPE): Description
+        """
+        self.a = GpsPoint(lng_a, lat_a)
+        self.b = GpsPoint(lng_b, lat_b)
+
+    def get_distance(self):
+        c = self.Wv(self.a, self.b)
+        return c
+
+    def max(self, a, b):
+        """Summary
+
+        Args:
+            a (TYPE): Description
+            b (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
+        if a > b:
+            return a
+        return b
+
+    def min(self, a, c):
+        """Summary
+
+        Args:
+            a (TYPE): Description
+            c (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
+        if a > c:
+            return c
+        return a
+
+    def lw(self, a, b, c):
+        """Summary
+
+        Args:
+            a (TYPE): Description
+            b (TYPE): Description
+            c (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
+        #     b != n && (a = Math.max(a, b));
+        #     c != n && (a = Math.min(a, c));
+        a = self.max(a, b)
+        a = self.min(a, c)
+        return a
+
+    def ew(self, a, b, c):
+        """Summary
+
+        Args:
+            a (TYPE): Description
+            b (TYPE): Description
+            c (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
+        while a > c:
+            a -= c - b
+        while a < b:
+            a += c - b
+        return a
+
+    def oi(self, a):
+        """Summary
+
+        Args:
+            a (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
+        return _math.pi * a / 180
+
+    def Td(self, a, b, c, d):
+        """Summary
+
+        Args:
+            a (TYPE): Description
+            b (TYPE): Description
+            c (TYPE): Description
+            d (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
+        return 6370996.81 * _math.acos(_math.sin(c) * _math.sin(d) + _math.cos(c) * _math.cos(d) *
+                                       _math.cos(b - a))
+
+    def Wv(self, a, b):
+        """Summary
+
+        Args:
+            a (GpsPoint): Description
+            b (GpsPoint): Description
+
+        Returns:
+            TYPE: Description
+        """
+        if not a or not b:
+            return 0
+        a.lng = self.ew(a.lng, -180, 180)
+        a.lat = self.lw(a.lat, -74, 74)
+        b.lng = self.ew(b.lng, -180, 180)
+        b.lat = self.lw(b.lat, -74, 74)
+        return self.Td(self.oi(a.lng), self.oi(b.lng), self.oi(a.lat), self.oi(b.lat))
 
 
 def formatLog(log_txt, dateformat='%Y-%m-%d %H:%M:%S'):
@@ -1967,7 +1977,7 @@ def bytes2string(databytes, splitchar="-", noformat=1):
     return s[len(splitchar):]
 
 
-def list2string(datalist, splitchar="-", compress=0):
+def list2string(datalist, splitchar="-"):
     """
     列表转字符串
 
@@ -1976,26 +1986,26 @@ def list2string(datalist, splitchar="-", compress=0):
         splitchar (str, optional): Description
         compress (bool, optional): Description
     """
+    return splitchar.join([str(a) for a in datalist])
+    # s = ''
+    # for d in datalist:
+    #     s += splitchar + str(d)
+    # s = s[1:]
+    # # s = splitchar.join(datalist)
+    # if compress:
+    #     return _base64.b64encode(_zlib.compress(s, 9))
+    # else:
+    #     return s
 
-    s = ''
-    for d in datalist:
-        s += splitchar + str(d)
-    s = s[1:]
-    # s = splitchar.join(datalist)
-    if compress:
-        return _base64.b64encode(_zlib.compress(s, 9))
-    else:
-        return s
-
-# def getMac():
-#     """Summary
-# 
-#     Returns:
-#         TYPE: Description
-#     """
-#     mac = _uuid.uuid1().hex[-12:]
-#     x = [mac[i:i + 2] for i in range(0, len(mac), 2)]
-#     return ":".join(x)
+    # def getMac():
+    #     """Summary
+    # 
+    #     Returns:
+    #         TYPE: Description
+    #     """
+    #     mac = _uuid.uuid1().hex[-12:]
+    #     x = [mac[i:i + 2] for i in range(0, len(mac), 2)]
+    #     return ":".join(x)
 
 
 def buildMac(head=0):
@@ -2329,3 +2339,153 @@ class ConfigFile():
         key (str): config data key name
         '''
         return self._conf_data.keys()
+
+
+class MXMariadb(object):
+
+    def __init__(self,
+                 host='127.0.0.1',
+                 port=3306,
+                 user='root',
+                 pwd='1234',
+                 conv={1: int,
+                       2: int,
+                       3: int,
+                       4: float,
+                       5: float,
+                       8: int,
+                       9: int},
+                 flag=32 | 65536 | 131072,
+                 maxconn=20):
+        """mariadb访问类初始化
+        Args:    
+            host: mariadb服务器名
+            port: mariadb服务端口
+            user: mariradb访问用户名
+            pwd:  mariadb访问密码
+            conv: 字段类型自动转换设置
+            flag: 客户端访问标记,默认压缩,允许多语句提交,允许多结果集
+        """
+        self.host = host
+        self.port = port
+        self.user = user
+        self.pwd = pwd
+        self.conv = conv
+        self.flag = flag
+        self.conn_queue = Queue.Queue(7)
+        self.error_msg = ''
+        self.show_debug = False
+
+    def __del__(self):
+        while self.conn_queue.qsize() > 0:
+            cn = self.conn_queue.get_nowait()
+            cn.close()
+            del cn
+
+    def get_conn(self):
+        '''获取mysql连接'''
+        try:
+            cn = self.conn_queue.get(timeout=7)
+            if not cn.stat().startswith('Uptime:'):
+                cn.close()
+                del cn
+                raise Exception('MySQL server has something wrong')
+            return cn
+        except Exception as ex:
+            try:
+                cn = mysql.connect(host=self.host,
+                                   port=self.port,
+                                   user=self.user,
+                                   passwd=self.pwd,
+                                   conv=self.conv,
+                                   client_flag=self.flag,
+                                   connect_timeout=7)
+                cn.set_character_set('utf8')
+            except Exception as ex:
+                self.error_msg = '_mysql conn error: {0}'.format(ex)
+                if self.show_debug:
+                    print(self.error_msg)
+                return None
+            else:
+                return cn
+
+    def put_conn(self, conn):
+        '''回收mysql连接'''
+        try:
+            self.conn_queue.put_nowait(conn)
+        except:
+            conn.close()
+            del conn
+
+    def get_last_error_message(self):
+        '''获取最近一次操作产生的错误信息, 获取后清空'''
+        s = self.error_msg
+        self.error_msg = ''
+        return s
+
+    def set_debug(self, debug):
+        self.show_debug = debug
+
+    def run_fetch(self, strsql):
+        '''数据库访问方法，
+            用于执行select类语句
+        Return:
+            结果集的集和'''
+        if len(strsql) == 0:
+            return None
+        else:
+            conn = self.get_conn()
+            if conn is None:
+                return None
+            else:
+                try:
+                    conn.query(strsql)
+                except Exception as ex:
+                    self.error_msg = '_mysql fetch error: {0}'.format(ex)
+                    try:
+                        conn.close()
+                    except:
+                        pass
+                    else:
+                        del conn
+
+                    if self.show_debug:
+                        print(self.error_msg)
+                else:
+                    cur = conn.use_result()
+                    d = None
+                    if cur is not None:
+                        d = cur.fetch_row(0)
+                        del cur
+                    else:
+                        del cur
+                    self.put_conn(conn)
+                    return d
+
+    def run_exec(self, strsql):
+        '''数据库访问方法
+            用于执行delet，insert，update语句，支持多条语句一起提交，用‘;’分割
+        Return:
+            [(affected_rows,insert_id),...]'''
+        if len(strsql) == 0:
+            return None
+        conn = self.get_conn()
+        if conn is None:
+            return None
+        x = []
+        try:
+            conn.query(strsql)
+        except Exception as ex:
+            self.error_msg = '_mysql exec error: {0}'.format(ex)
+            if self.show_debug:
+                print(self.error_msg)
+            conn.close()
+            del conn
+        else:
+            conn.use_result()
+            x.append((conn.affected_rows(), conn.insert_id()))
+            while conn.next_result() > -1:
+                x.append((conn.affected_rows(), conn.insert_id()))
+
+            self.put_conn(conn)
+        return x

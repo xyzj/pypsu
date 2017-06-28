@@ -4,7 +4,10 @@ __version__ = "0.9"
 __author__ = 'minamoto'
 __doc__ = 'useful sql func'
 
-import _mysql as mysql
+try:
+    import _mysql as mysql
+except:
+    pass
 import Queue
 
 

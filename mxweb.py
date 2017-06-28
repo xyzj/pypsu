@@ -23,7 +23,7 @@ p = os.path.join(mx.SCRIPT_DIR, '.salt')
 if os.path.isfile(p):
     try:
         with codecs.open(p, 'r', 'utf-8') as f:
-            __salt = f.readline().replace('\r', '').replace('\n', '')
+            __salt = f.readline().strip()
             f.close()
     except:
         pass
@@ -53,7 +53,7 @@ class MXRequestHandler(tornado.web.RequestHandler):
     #     if os.path.isfile('.salt'):
     #         try:
     #             with codecs.open('.salt', 'r', 'utf-8') as f:
-    #                 self.salt = f.readline().replace('\r', '').replace('\n', '')
+    #                 self.salt = f.readline().strip()
     #                 f.close()
     #         except:
     #             pass
@@ -77,15 +77,16 @@ class MXRequestHandler(tornado.web.RequestHandler):
 
     def prepare(self):
         if self.request.method == 'POST':
-            x = ','.join(self.get_arguments('pb2')).replace('\r', '').replace('\n', '')
+            x = ','.join(self.get_arguments('pb2')).strip()
             if len(x) > 0:
                 logging.debug(self.format_log(self.request.remote_ip, x, self.request.path, 'REQ'))
             else:
-                logging.debug(self.format_log(self.request.remote_ip,
-                                              json.dumps(self.request.arguments,
-                                                         separators=(',', ':')),
-                                              self.request.path,
-                                              'REQ'))
+                if 'uuid' not in self.request.arguments.keys():
+                    logging.debug(self.format_log(self.request.remote_ip,
+                                                  json.dumps(self.request.arguments,
+                                                             separators=(',', ':')),
+                                                  self.request.path,
+                                                  'REQ'))
             del x
         elif self.request.method == 'GET':
             jobs = self.get_arguments('do')

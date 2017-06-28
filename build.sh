@@ -4,7 +4,6 @@ cp -vf mxweb.py mxweb.pyx
 cp -vf mxpsu.py mxpsu.pyx
 cp -vf mxlog.py mxlog.pyx
 cp -vf pbjson.py mxpbjson.pyx
-cp -vf mxsql.py mxsql.pyx
 
 python setup.py build_ext -if
 
