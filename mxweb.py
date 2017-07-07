@@ -77,17 +77,22 @@ class MXRequestHandler(tornado.web.RequestHandler):
 
     def prepare(self):
         if self.request.method == 'POST':
-            x = ','.join(self.get_arguments('pb2')).strip()
+            xargs = self.request.arguments.copy()
+            try:
+                del xargs['uuid']
+            except:
+                pass
+            x = json.dumps(xargs, separators=(',', ':'))
             if len(x) > 0:
                 logging.debug(self.format_log(self.request.remote_ip, x, self.request.path, 'REQ'))
-            else:
-                if 'uuid' not in self.request.arguments.keys():
-                    logging.debug(self.format_log(self.request.remote_ip,
-                                                  json.dumps(self.request.arguments,
-                                                             separators=(',', ':')),
-                                                  self.request.path,
-                                                  'REQ'))
-            del x
+            # else:
+            #     if 'uuid' not in self.request.arguments.keys():
+            #         logging.debug(self.format_log(self.request.remote_ip,
+            #                                       json.dumps(self.request.arguments,
+            #                                                  separators=(',', ':')),
+            #                                       self.request.path,
+            #                                       'REQ'))
+            del x, xargs
         elif self.request.method == 'GET':
             jobs = self.get_arguments('do')
             for do in jobs:

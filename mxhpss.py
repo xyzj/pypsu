@@ -125,7 +125,10 @@ class ClientSession(object):
         """
         数据发送
         """
-        self.sock.send(self.wait4send)
+        try:
+            self.sock.send(self.wait4send)
+        except Exception as ex:
+            self.disconnect('socket send error: {0},{1}'.format(ex, repr(self.wait4send)))
         self.wait4send = None
 
     def onSessionRecv(self, recbuff):
@@ -326,16 +329,19 @@ class ClientSession(object):
             try:
                 recbuff = self.sock.recv(8192)
             except Exception as ex:
-                self.showDebug("recerr again:{0},{1}".format(ex.message, repr(recbuff)))
+                self.showDebug("recerr:{0},{1}".format(ex.message, repr(recbuff)))
+                # with open('recverr.{0}-{1}-{2}.log'.format(time.localtime()[0], time.localtime()[1],
+                #                                            time.localtime()[2]), 'a') as f:
+                #     f.write("{2} recerr:{0},{1} \r\n".format(ex, repr(recbuff), stamp2time(
+                #         time.time())))
+                #     f.close()
                 self.disconnect('socket recv error: {0},{1}'.format(ex, repr(recbuff)))
                 return 0
-                # self.showDebug("recerr:{0},{1}, try again.".format(ex.message, repr(recbuff)))
                 # try:
                 #     recbuff = self.sock.recv(4096)
                 # except: Exception as ex:
                 #     self.showDebug("recerr again:{0},{1}".format(ex.message, repr(recbuff)))
                 #     self.disconnect('socket recv error: {0},{1}'.format(ex, repr(recbuff)))
-                #     return 0
         else:
             recbuff = rec
 
