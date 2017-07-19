@@ -128,6 +128,7 @@ class MXMariadb(object):
 
                     if self.show_debug:
                         print(self.error_msg)
+                    return None
                 else:
                     cur = conn.use_result()
                     d = None
@@ -154,10 +155,16 @@ class MXMariadb(object):
             conn.query(strsql)
         except Exception as ex:
             self.error_msg = '_mysql exec error: {0}'.format(ex)
+            try:
+                conn.close()
+            except:
+                pass
+            else:
+                del conn
+
             if self.show_debug:
                 print(self.error_msg)
-            conn.close()
-            del conn
+            return None
         else:
             conn.use_result()
             x.append((conn.affected_rows(), conn.insert_id()))
