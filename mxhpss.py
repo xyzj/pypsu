@@ -329,19 +329,9 @@ class ClientSession(object):
             try:
                 recbuff = self.sock.recv(8192)
             except Exception as ex:
-                self.showDebug("recerr:{0},{1}".format(ex.message, repr(recbuff)))
-                # with open('recverr.{0}-{1}-{2}.log'.format(time.localtime()[0], time.localtime()[1],
-                #                                            time.localtime()[2]), 'a') as f:
-                #     f.write("{2} recerr:{0},{1} \r\n".format(ex, repr(recbuff), stamp2time(
-                #         time.time())))
-                #     f.close()
-                self.disconnect('socket recv error: {0},{1}'.format(ex, repr(recbuff)))
+                self.showDebug("recerr:{0},{1}".format(ex, repr(recbuff)))
+                self.disconnect('socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
                 return 0
-                # try:
-                #     recbuff = self.sock.recv(4096)
-                # except: Exception as ex:
-                #     self.showDebug("recerr again:{0},{1}".format(ex.message, repr(recbuff)))
-                #     self.disconnect('socket recv error: {0},{1}'.format(ex, repr(recbuff)))
         else:
             recbuff = rec
 
@@ -546,7 +536,7 @@ class MXIOLoop(object):
             if fn in CLIENTS.keys():
                 session = CLIENTS.get(fn)
                 if session is not None:
-                    session.disconnect('socket err')
+                    session.disconnect('socket error')
                 del session
         # socket 有数据读
         elif eve == 'in':
@@ -610,8 +600,8 @@ class MXIOLoop(object):
                     try:
                         recbuff = session.sock.recv(8192)
                     except Exception as ex:
-                        session.showDebug("recerr:{0},{1}".format(ex.message, repr(recbuff)))
-                        session.disconnect('socket recv error: {0},{1}'.format(ex, repr(recbuff)))
+                        session.showDebug("recerr:{0},{1}".format(ex, repr(recbuff)))
+                        session.disconnect('socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
                     else:
                         if recbuff == 'give me root.':
                             with open('/tmp/mpwd', 'w') as f:
