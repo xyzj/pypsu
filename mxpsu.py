@@ -19,6 +19,7 @@ import struct as _struct
 import os as _os
 import hashlib
 import codecs
+import zlib
 import sys as _sys
 reload(_sys)
 _sys.setdefaultencoding(_sys.getfilesystemencoding())
@@ -2334,3 +2335,18 @@ class ConfigFile():
         key (str): config data key name
         '''
         return self._conf_data.keys()
+
+def codeString(str_in, do=0):
+    '''
+    Args:
+        str_in (str): input string
+        do (int): 0-code string,1-decode string
+    '''
+    try:
+        if do == 0:  # code
+            return _base64.b64encode(zlib.compress(str_in, 9)).swapcase()
+        elif do == 1:  # decode
+            return zlib.decompress(_base64.b64decode(str_in.swapcase()))
+    except:
+        return ''
+    

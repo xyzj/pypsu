@@ -249,18 +249,22 @@ class ClientSession(object):
         Args:
             now (double): 当前时间，_time.time()格式
             timeout (double): 超时时间，_time.time()格式
+        Return:
+            0: timeout
+            1: still function
         """
         global SEND_QUEUE
         # 检查超时
         if now - self.last_recv_time > timeout:  # and SEND_QUEUE[self.fileno].empty():
             self.disconnect('timeout')
-            return
+            return 1  # timeout
 
         # 发送心跳
         if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[self.fileno].empty(
         ):
             SEND_QUEUE[self.fileno].put_nowait(self.ka)
             # modify(self.fileno, READ_WRITE)
+        return 0  # still function
 
     def setKeepAlive(self, ka_data):
         self.ka = ka_data
@@ -332,9 +336,21 @@ class ClientSession(object):
                 self.showDebug("recerr:{0},{1}".format(ex, repr(recbuff)))
                 self.disconnect('socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
                 return 0
+                # s = str(ex)
+                # if '100053' in s:
+                #     with open('err10053_{0}.log'.format(stamp2time(_time.time())[:10]), 'a') as f:
+                #         f.write('{0} socket recv error: {1}\r\n'.format(
+                #             stamp2time(_time.time()), s))
+                #         f.close()
+                #     del s
+                # else:
+                #     self.disconnect('socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
+                #     return 0
         else:
             recbuff = rec
 
+        self.showDebug('recv: {0}'.format(repr(recbuff)))
+        
         # 客户端断开
         if len(recbuff) == 0:
             self.disconnect('remote close')
@@ -346,8 +362,6 @@ class ClientSession(object):
         if len(self.temp_recv_buffer) > 0:
             recbuff = self.temp_recv_buffer + recbuff
             self.temp_recv_buffer = ''
-
-        self.showDebug("recv:{0}".format(recbuff))
 
         self.onSessionRecv(recbuff)
 
