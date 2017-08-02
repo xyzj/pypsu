@@ -28,7 +28,7 @@ if os.path.isfile(p):
     except:
         pass
 if len(__salt) == 0:
-    __salt = '3a533ba0'
+    __salt = zlib.decompress('x\x9c35N3M662\x00\x00\t;\x01\xfc')
 
 del p
 

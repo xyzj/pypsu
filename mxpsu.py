@@ -1762,23 +1762,31 @@ def stamp2time(stamp, fromcsharp=0, format_type='%Y-%m-%d %H:%M:%S'):
     y = 621356256000000000.0
     z = 10000000.0
 
-    if fromcsharp > 0:
-        return _datetime.datetime.strftime(
-            _datetime.datetime.fromtimestamp((stamp - y) / z), format_type)
-        # return _time.strftime(format_type, _time.localtime((stamp - y) / z))
-    else:
-        return _datetime.datetime.strftime(_datetime.datetime.fromtimestamp(stamp), format_type)
-        # return _time.strftime(format_type, _time.localtime(stamp))
+    try:
+        if fromcsharp > 0:
+            return _datetime.datetime.strftime(
+                _datetime.datetime.fromtimestamp((stamp - y) / z), format_type)
+            # return _time.strftime(format_type, _time.localtime((stamp - y) / z))
+        else:
+            return _datetime.datetime.strftime(_datetime.datetime.fromtimestamp(stamp), format_type)
+            # return _time.strftime(format_type, _time.localtime(stamp))
+    except Exception as ex:
+        print(ex)
+        return ''
 
 
 def switchStamp(stamp):
     y = 621356256000000000.0
     z = 10000000.0
 
-    if stamp > y:
-        return int((stamp - y) / z)
-    else:
-        return int(stamp * z + y)
+    try:
+        if stamp > y:
+            return int((stamp - y) / z)
+        else:
+            return int(stamp * z + y)
+    except Exception as ex:
+        print(ex)
+        return 0
 
 
 def ip2int(strip, usehostorder=0):
@@ -2336,6 +2344,7 @@ class ConfigFile():
         '''
         return self._conf_data.keys()
 
+
 def codeString(str_in, do=0):
     '''
     Args:
@@ -2349,4 +2358,3 @@ def codeString(str_in, do=0):
             return zlib.decompress(_base64.b64decode(str_in.swapcase()))
     except:
         return ''
-    
