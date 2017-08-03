@@ -2349,7 +2349,7 @@ class ConfigFile():
         return self._conf_data.keys()
 
 
-def codeString(str_in, do=0):
+def code_string(str_in, do=0):
     '''
     Args:
         str_in (str): input string
@@ -2357,8 +2357,8 @@ def codeString(str_in, do=0):
     '''
     try:
         if do == 0:  # code
-            return _base64.b64encode(zlib.compress(str_in, 9)).swapcase()
+            return _base64.b64encode(zlib.compress(str_in[::-1], 9)).swapcase()
         elif do == 1:  # decode
-            return zlib.decompress(_base64.b64decode(str_in.swapcase()))
+            return zlib.decompress(_base64.b64decode(str_in.swapcase()))[::-1]
     except:
         return ''
