@@ -2332,10 +2332,14 @@ class ConfigFile():
         key (str): config data key name
         with_remark (bool): 0-return value,1-return (value, remark)
         '''
+        d = self._conf_data.get(key)
         if with_remark:
-            return self._conf_data.get(key)
+            return d
         else:
-            return self._conf_data.get(key)[0]
+            if d is not None:
+                return d[0]
+            else:
+                return d
 
     def getKeys(self):
         '''
