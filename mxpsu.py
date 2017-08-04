@@ -2283,7 +2283,7 @@ class ConfigFile():
                     if c.startswith('#'):
                         remark = c
                     elif c.find('=') > 0:
-                        a, b = c.split('=')
+                        a, b = c.split('=', 1)
                         self._conf_data[a.strip()] = (b.strip(), remark)
                         remark = ''
                 f.close()
@@ -2349,7 +2349,7 @@ class ConfigFile():
         return self._conf_data.keys()
 
 
-def code_string(str_in, do=0):
+def code_string(str_in, do=0, scode=''):
     '''
     Args:
         str_in (str): input string
@@ -2357,8 +2357,12 @@ def code_string(str_in, do=0):
     '''
     try:
         if do == 0:  # code
-            return _base64.b64encode(zlib.compress(str_in[::-1], 9)).swapcase()
+            if getMD5(str(scode)) == '03b040cc0f95ac69f1e58e2f660556c5':
+                return _base64.b64encode('\xb0\x04\x00\x07\x0f\x01\x93' + zlib.compress(
+                    str_in[::-1], 9)).swapcase()
+            else:
+                return _base64.b64encode(str(_time.time()))
         elif do == 1:  # decode
-            return zlib.decompress(_base64.b64decode(str_in.swapcase()))[::-1]
+            return zlib.decompress(_base64.b64decode(str_in.swapcase())[7:])[::-1]
     except:
         return ''
