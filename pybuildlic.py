@@ -23,4 +23,4 @@ if __name__ == "__main__":
     else:
         y = int(options.deadline)
 
-    lic.generate_license(deadline_year=y, max_client=options.maxclient)
+    lic.generate_license(deadline_year=y, max_client=options.maxclient, strKey=' good-bye@201408211755')

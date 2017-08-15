@@ -103,12 +103,12 @@ def pb2dict(obj):
     return adict
 
 
-def json2pb(cls, json, strict=False):
+def json2pb(cls, data, strict=False):
     """
     Takes a class representing the Protobuf Message and fills it with data from
     the json string.
     """
-    return dict2pb(cls, json.loads(json), strict)
+    return dict2pb(cls, json.loads(data), strict)
 
 
 def pb2json(obj, data=None, noformat=True):

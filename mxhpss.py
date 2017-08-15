@@ -6,14 +6,220 @@ __doc__ = 'High-performance socket service'
 
 import gevent as _gevent
 import socket as _socket
+import time as _time
+import sys as _sys
+import json as _json
+import random as _random
+import zlib as _xlib
+import select as _select
+import bz2 as _bz2
+import base64 as _base64
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hexBytesString
-from mxhpss_comm import _time, _sys, loadLicense, IMPL, READ, READ_WRITE, WRITE, register, unregister, modify, CLIENTS, _EPOLLIN, _EPOLLOUT, _EPOLLHUP, _EPOLLERR
+# from mxhpss_comm import _time, _sys, loadLicense, IMPL, READ, READ_WRITE, WRITE, register, unregister, modify, CLIENTS, _EPOLLIN, _EPOLLOUT, _EPOLLHUP, _EPOLLERR
 import gc as _gc
 import os as _os
 
 IS_EXIT = 0
 # 发送队列{fd, SendData}
 SEND_QUEUE = {}
+
+# Constants from the epoll module
+_EPOLLIN = 0x001
+_EPOLLPRI = 0x002
+_EPOLLOUT = 0x004
+_EPOLLERR = 0x008
+_EPOLLHUP = 0x010
+_EPOLLRDHUP = 0x2000
+_EPOLLONESHOT = (1 << 30)
+_EPOLLET = (1 << 31)
+
+# epoll实例
+if Platform.isLinux():
+    IMPL = _select.epoll()
+    _ERROR = _EPOLLERR | _EPOLLHUP
+    READ = _EPOLLIN | _ERROR
+    READ_WRITE = _EPOLLOUT | READ
+    WRITE = _EPOLLOUT | _ERROR
+else:
+    IMPL = _select.select
+    READ = set()
+    READ_WRITE = set()
+    WRITE = set()
+
+# 客户端集合{fileno, ClientSession}
+CLIENTS = {}
+
+
+def _destroy_license(strlic, licpath='LICENSE'):
+    l = _random.randint(0, len(strlic) - 2)
+    b = range(48, 58)
+    b.extend(range(65, 91))
+    b.extend(range(97, 123))
+    l2 = _random.randint(0, len(b))
+    slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l], chr(b[l2]), strlic[l:len(strlic) - 2], str(l),
+                                       len(str(l)), strlic[len(strlic) - 2:])
+    l = len(slic)
+    llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
+    llic.extend([slic[i:i + 27] for i in range(0, l, 27)])
+    llic.append("–" * 8 + "END LICENSE" + "–" * 8)
+    with open(licpath, 'w') as f:
+        f.writelines([c + "\n" for c in llic])
+    return None
+        
+def _decrypt_string(strCText, strKey=""):
+    if strCText.strip() == "":
+        return strCText
+    return _bz2.decompress(_base64.b64decode(strCText.swapcase()))
+
+    
+def _load_license(licpath='LICENSE'):
+    lic = []
+    try:
+        with open(licpath, "rU") as f:
+            lic = f.readlines()
+    except:
+        return "err:License file not found."
+    s = ""
+    for l in lic:
+        if '-' * 7 in l or l.strip() == "":
+            continue
+        s += l.strip()
+    if s == "":
+        return "err:License file data error."
+    x = int(s[8])
+    lx = int(s[23:23 + x])
+    s = s[lx + x + 2:].swapcase()
+    try:
+        ss = _xlib.decompress(_base64.b64decode(s))
+        lx = len(ss)
+        m = ss[lx - 3::-1] + ss[lx - 2:]
+        ss = _decrypt_string(m.swapcase())
+        mlic = _json.loads(ss)
+        x = mlic["deadline"] - int(_time.time())
+        if x < 0:
+            _destroy_license(s, licpath)
+            return "err:Current license has expired!"
+    except:
+        return "err:License file load error."
+
+    return 'The license will expire in {0} days {1} hours.'.format(x / 3600 / 24, x / 3600 % 24)
+
+
+def loadLicense(licpath='LICENSE'):
+    return _load_license(licpath)
+
+
+def register(fileno, objwatch, ssock=None):
+    """
+    注册epoll fd或select socket实例
+
+    Args:
+        fileno (object): fd或socket实例
+        objwatch (object): 监控事件
+        ssock (socket): 用于监听的socket实例
+    """
+    global READ, WRITE, CLIENTS, IMPL, WRITE_ONLY
+    if Platform.isLinux():
+        try:
+            IMPL.register(fileno, objwatch)
+        except:
+            return
+    else:
+        if objwatch is READ:
+            READ.add(fileno)
+        elif objwatch is READ_WRITE:
+            READ.add(fileno)
+            WRITE.add(fileno)
+        elif objwatch is WRITE:
+            WRITE.add(fileno)
+        # if ssock is not None:
+        #     READ.add(ssock)
+        # else:
+        #     sock = CLIENTS.get(fileno)
+        #     if sock is not None:
+        #         if objwatch is READ:
+        #             READ.add(sock.sock)
+        #         elif objwatch is WRITE:
+        #             READ.add(sock.sock)
+        #             WRITE.add(sock.sock)
+
+
+def modify(fileno, objwatch):
+    """
+    修改epoll fd或select socket实例监听事件
+
+    Args:
+        fileno (object): fd或socket实例
+        objwatch (object): 监控事件
+    """
+    global READ, WRITE, CLIENTS, IMPL, WRITE_ONLY
+    if Platform.isLinux():
+        try:
+            IMPL.modify(fileno, objwatch)
+        except:
+            return
+    else:
+        if objwatch is READ:
+            try:
+                WRITE.remove(fileno)
+            except:
+                pass
+        elif objwatch is READ_WRITE:
+            WRITE.add(fileno)
+            READ.add(fileno)
+        elif objwatch is WRITE:
+            try:
+                READ.remove(fileno)
+            except:
+                pass
+            WRITE.add(fileno)
+        # sock = CLIENTS.get(fileno)
+        # if sock is not None:
+        #     if objwatch is READ:
+        #         try:
+        #             WRITE.remove(sock.sock)
+        #         except:
+        #             pass
+        #     elif objwatch is WRITE:
+        #         WRITE.add(sock.sock)
+
+
+def unregister(fileno):
+    """
+    注销epoll fd或select socket实例监听事件
+
+    Args:
+        fileno (object): fd或socket实例
+    """
+    global READ, WRITE, CLIENTS, IMPL, WRITE_ONLY
+    if Platform.isLinux():
+        try:
+            IMPL.unregister(fileno)
+        except:
+            pass
+    else:
+        try:
+            READ.remove(fileno)
+        except:
+            pass
+        try:
+            WRITE.remove(fileno)
+        except:
+            pass
+        try:
+            READ_WRITE.remove(fileno)
+        except:
+            pass
+        # sock = CLIENTS.get(fileno)
+        # if sock is not None:
+        #     try:
+        #         READ.remove(sock.sock)
+        #     except:
+        #         pass
+        #     try:
+        #         WRITE.remove(sock.sock)
+        #     except:
+        #         pass
 
 
 def create_daemon():

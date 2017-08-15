@@ -19,7 +19,7 @@ import struct as _struct
 import os as _os
 import hashlib
 import codecs
-import zlib
+import zlib as _xlib
 import sys as _sys
 reload(_sys)
 _sys.setdefaultencoding(_sys.getfilesystemencoding())
@@ -2349,7 +2349,7 @@ class ConfigFile():
         return self._conf_data.keys()
 
 
-def code_string(str_in, do=0, scode=''):
+def code_string(str_in, do=1, scode=''):
     '''
     Args:
         str_in (str): input string
@@ -2358,11 +2358,11 @@ def code_string(str_in, do=0, scode=''):
     try:
         if do == 0:  # code
             if getMD5(str(scode)) == '03b040cc0f95ac69f1e58e2f660556c5':
-                return _base64.b64encode('\xb0\x04\x00\x07\x0f\x01\x93' + zlib.compress(
+                return _base64.b64encode('\xb0\x04\x00\x07\x0f\x01\x93' + _xlib.compress(
                     str_in[::-1], 9)).swapcase()
             else:
                 return _base64.b64encode(str(_time.time()))
         elif do == 1:  # decode
-            return zlib.decompress(_base64.b64decode(str_in.swapcase())[7:])[::-1]
+            return _xlib.decompress(_base64.b64decode(str_in.swapcase())[7:])[::-1]
     except:
         return ''

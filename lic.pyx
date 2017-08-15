@@ -4,24 +4,29 @@ __version__ = "0.9"
 __author__ = 'minamoto'
 __doc__ = 'Perhaps something useful'
 
-from Crypto.Cipher import AES as _AES
+# from Crypto.Cipher import AES as _AES
 import base64 as _base64
-import zlib as _zlib
+import zlib as _xlib
 import time as _time
+import json as _json
 import random as _random
+import hashlib as _hashlib
+import bz2 as _bz2
 
 
-cdef int __time2stamp(str timestr, int tocsharp=0, str format_type='%Y-%m-%d %H:%M:%S'):
+def __time2stamp(timestr, tocsharp=0, format_type='%Y-%m-%d %H:%M:%S'):
     try:
         if tocsharp:
-            return int(_time.mktime(_time.strptime(timestr, format_type)) * 10000000 + 621356256000000000)
+            return int(_time.mktime(_time.strptime(timestr, format_type)) * 10000000 +
+                       621356256000000000)
         else:
             return int(_time.mktime(_time.strptime(timestr, format_type)))
     except:
         return 0
 
-cdef str __buildhistory():
-    cdef str s = """2007-12-07  We met ...
+
+def __buildhistory():
+    s = """2007-12-07  We met ...
 2009-01-28  We conducted the first trip ...
 2009-07-20  We got our marriage certificate ...
 2010-06-05  We got married ...
@@ -49,9 +54,9 @@ XNNNNNNNNNNNNM....WWWWWWWWWWWWNNNNNNNNNNNNNNNXXX
 XXXXXNNNNNNNNX..XWNNNNNNNNNNNNNNNNNNNNNNNNNNXXXX
 """
 
-    cdef list b = []
-    cdef str d = ""
-    cdef str ff = ""
+    b = []
+    d = ""
+    ff = ""
     for x in s:
         b.append(hex(ord(x) - 7))
 
@@ -66,73 +71,85 @@ XXXXXNNNNNNNNX..XWNNNNNNNNNNNNNNNNNNNNNNNNNNXXXX
     return None
 
 
-cdef str __destroy_license(str strlic, str licpath='LICENSE'):
-    cdef int l = _random.randint(0, len(strlic) - 2)
-    cdef list b = range(48, 58)
+def __destroy_license(strlic, licpath='LICENSE'):
+    l = _random.randint(0, len(strlic) - 2)
+    b = range(48, 58)
     b.extend(range(65, 91))
     b.extend(range(97, 123))
-    cdef int l2 = _random.randint(0, len(b))
-    cdef str slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l], chr(b[l2]), strlic[l:len(strlic) - 2], str(l), len(str(l)),
-                                                strlic[len(strlic) - 2:])
+    l2 = _random.randint(0, len(b))
+    slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l], chr(b[l2]), strlic[l:len(strlic) - 2], str(l),
+                                       len(str(l)), strlic[len(strlic) - 2:])
     l = len(slic)
-    cdef list llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
-    llic.extend([slic[i: i + 27] for i in range(0, l, 27)])
+    llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
+    llic.extend([slic[i:i + 27] for i in range(0, l, 27)])
     llic.append("–" * 8 + "END LICENSE" + "–" * 8)
     with open(licpath, 'w') as f:
         f.writelines([c + "\n" for c in llic])
     return None
 
+# __decrypt_string(str strCText, str strKey=""):
+#     if strCText.strip() == "":
+#         return strCText
+#     defkey = "good-bye@201408211755"
+#     key = _base64.b64encode(strKey + defkey)[:32]
+#     mode = _AES.MODE_ECB
+#     decryptor = _AES.new(key, mode)
+#     plaintext = decryptor.decrypt(_base64.b64decode(strCText)).strip()
+#     return plaintext
 
-cdef str __decrypt_string(str strCText, str strKey=""):
+
+def __decrypt_string(strCText, strKey=""):
     if strCText.strip() == "":
         return strCText
-    cdef str defkey = " good-bye@201408211755"
-    cdef str key = _base64.b64encode(strKey + defkey)[:32]
-    mode = _AES.MODE_ECB
-    decryptor = _AES.new(key, mode)
-    cdef str plaintext = decryptor.decrypt(_base64.b64decode(strCText)).strip()
-    return plaintext
+    return _bz2.decompress(_base64.b64decode(strCText.swapcase()))
 
 
-cdef str __encrypt_string(str strText, str strKey=""):
-    if strText.strip() == "":
+def __encrypt_string(strText, strKey=""):
+    md5 = _hashlib.md5()
+    md5.update(strKey)
+    if strText.strip() == "" or md5.hexdigest() != '0e9cf665704b62ef1d9e87680b6e3633':
         return strText
-    cdef str defkey = " good-bye@201408211755"
-    cdef str key = _base64.b64encode(strKey + defkey)[:32]
-    mode = _AES.MODE_ECB
-    encryptor = _AES.new(key, mode)
-    cdef str ciphertext = _base64.b64encode(encryptor.encrypt(strText.rjust(((len(strText) / 16) + 1) * 16)))
-    return ciphertext
+    print(_base64.b64encode(_bz2.compress(strText, 9)).swapcase())
+    return _base64.b64encode(_bz2.compress(strText, 9)).swapcase()
+
+    # __encrypt_string(str strText, str strKey=""):
+    #     if strText.strip() == "":
+    #         return strText
+    #     defkey = "good-bye@201408211755"
+    #     key = _base64.b64encode(strKey + defkey)[:32]
+    #     mode = _AES.MODE_ECB
+    #     encryptor = _AES.new(key, mode)
+    #     ciphertext = _base64.b64encode(encryptor.encrypt(strText.rjust(((len(strText) / 16) + 1) * 16)))
+    #     return ciphertext
 
 
-cdef str __build_history():
-    __buildhistory()
-    cdef str ss = ""
+def __build_history():
+    ss = ""
     with open("OURHISTORY", "r") as f:
         ss = f.readline()
-    cdef str oh = ""
+    oh = ""
     for s in ss:
         oh += chr(ord(s) + 7)
 
-    cdef str a = _base64.b64encode(oh)
-    cdef int x = a.count("=")
-    cdef int l = len(a)
+    a = _base64.b64encode(oh)
+    x = a.count("=")
+    l = len(a)
     return "{0}{1}{2}{3}{4}{5}".format(a[:8], len(str(l)), x, a[8:21], l, a[21:]).replace("=", "z")
 
 
-cdef str __generate_license(int deadline_year, int max_client=2100):
+def __generate_license(deadline_year, max_client=2100, strKey=""):
     zlic = {"deadline": __time2stamp('{0}-08-21 17:55:00'.format(deadline_year)),
-                "maxclients": max_client}
-    # cdef str lic = _json.dumps(zlic, separators=(',', ':'))
-    cdef str lic = str(zlic).replace(' ','').replace("'", "")
-    cdef str slic = __encrypt_string(lic).swapcase()
-    cdef int l = len(slic)
-    cdef str sl = slic[l - 3::-1] + slic[l - 2:]
-    slic = _base64.b64encode(_zlib.compress(sl, 9)).swapcase()
+            "maxclients": max_client}
+    lic = _json.dumps(zlic, separators=(',', ':'))
+    # lic = str(zlic).replace("'", "")
+    slic = __encrypt_string(lic, strKey).swapcase()
+    l = len(slic)
+    sl = slic[l - 3::-1] + slic[l - 2:]
+    slic = _base64.b64encode(_xlib.compress(sl, 9)).swapcase()
     slic = __build_history() + slic
     l = len(slic)
-    cdef list llic = ['{0}BEGIN LICENSE{1}'.format('-' * 7, '-' * 7)]
-    llic.extend([slic[i: i + 27] for i in range(0, l, 27)])
+    llic = ['{0}BEGIN LICENSE{1}'.format('-' * 7, '-' * 7)]
+    llic.extend([slic[i:i + 27] for i in range(0, l, 27)])
     llic.append('{0}END LICENSE{1}'.format('-' * 8, '-' * 8))
     with open("LICENSE", 'w') as f:
         f.writelines([c + "\n" for c in llic])
@@ -141,48 +158,46 @@ cdef str __generate_license(int deadline_year, int max_client=2100):
     return 'License generation success.'
 
 
-cdef str __load_license(str licpath='LICENSE'):
-    cdef list lic = []
+def __load_license(licpath='LICENSE'):
+    lic = []
     try:
         with open(licpath, "rU") as f:
             lic = f.readlines()
     except:
         return "err:License file not found."
-    cdef str s = ""
+    s = ""
     for l in lic:
-        if l.startswith("–" * 7) or l.strip() == "":
+        if '-' * 7 in l or l.strip() == "":
             continue
         s += l.strip()
     if s == "":
         return "err:License file data error."
-    cdef int x = int(s[8])
-    cdef int lx = int(s[23:23 + x])
+    x = int(s[8])
+    lx = int(s[23:23 + x])
     s = s[lx + x + 2:].swapcase()
     try:
-        ss = _zlib.decompress(_base64.b64decode(s))
+        ss = _xlib.decompress(_base64.b64decode(s))
         lx = len(ss)
         m = ss[lx - 3::-1] + ss[lx - 2:]
         ss = __decrypt_string(m.swapcase())
-        ss = ss.replace('{','').replace('}','')
-        lss = ss.split(',')
-        mlic = {}
-        for j in lss:
-            mlic[j.split(':')[0]] = int(j.split(':')[1])
-        # mlic = _json.loads(ss)
+        # ss = ss.replace('{','').replace('}','')
+        # lss = ss.split(',')
+        # for j in lss:
+        #     mlic[j.split(':')[0]] = int(j.split(':')[1])
+        mlic = _json.loads(ss)
         x = mlic["deadline"] - int(_time.time())
         if x < 0:
             __destroy_license(s, licpath)
             return "err:Current license has expired!"
     except:
         return "err:License file load error."
-    
+
     return 'The license will expire in {0} days {1} hours.'.format(x / 3600 / 24, x / 3600 % 24)
 
 
+def generate_license(deadline_year, max_client=2100, strKey=""):
+    return __generate_license(deadline_year, max_client, strKey)
 
-def generate_license(int deadline_year, int max_client=2100):
-    return __generate_license(deadline_year, max_client)
 
-
-def load_license(str licpath='LICENSE'):
+def load_license(licpath='LICENSE'):
     return __load_license(licpath)
