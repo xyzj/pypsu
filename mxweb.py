@@ -22,7 +22,7 @@ p = os.path.join(mx.SCRIPT_DIR, '.salt')
 if os.path.isfile(p):
     try:
         with codecs.open(p, 'r', 'utf-8') as f:
-            x = f.readline().strip()
+            x = mx.decode_string(f.readline().strip())
             if x != 'You screwed up.':
                 __salt = x
             f.close()
