@@ -15,7 +15,6 @@ import select as _select
 import bz2 as _bz2
 import base64 as _base64
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hexBytesString
-# from mxhpss_comm import _time, _sys, loadLicense, IMPL, READ, READ_WRITE, WRITE, register, unregister, modify, CLIENTS, _EPOLLIN, _EPOLLOUT, _EPOLLHUP, _EPOLLERR
 import gc as _gc
 import os as _os
 
@@ -65,13 +64,14 @@ def _destroy_license(strlic, licpath='LICENSE'):
     with open(licpath, 'w') as f:
         f.writelines([c + "\n" for c in llic])
     return None
-        
+
+
 def _decrypt_string(strCText, strKey=""):
     if strCText.strip() == "":
         return strCText
     return _bz2.decompress(_base64.b64decode(strCText.swapcase()))
 
-    
+
 def _load_license(licpath='LICENSE'):
     lic = []
     try:
@@ -556,7 +556,7 @@ class ClientSession(object):
             recbuff = rec
 
         self.showDebug('recv: {0}'.format(repr(recbuff)))
-        
+
         # 客户端断开
         if len(recbuff) == 0:
             self.disconnect('remote close')

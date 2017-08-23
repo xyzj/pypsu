@@ -2349,20 +2349,86 @@ class ConfigFile():
         return self._conf_data.keys()
 
 
-def code_string(str_in, do=1, scode=''):
+def code_string(str_in, scode=''):
     '''
     Args:
         str_in (str): input string
-        do (int): 0-code string,1-decode string
+    Return:
+        code string
     '''
     try:
-        if do == 0:  # code
-            if getMD5(str(scode)) == '03b040cc0f95ac69f1e58e2f660556c5':
-                return _base64.b64encode('\xb0\x04\x00\x07\x0f\x01\x93' + _xlib.compress(
-                    str_in[::-1], 9)).swapcase()
+        if getMD5(str(scode)) == '03b040cc0f95ac69f1e58e2f660556c5':
+            return _base64.b64encode('\xb0\x04\x00\x07\x0f\x01\x93' + _xlib.compress(str_in[::-1],
+                                                                                     9)).swapcase()
+        else:
+            return _base64.b64encode(str(_time.time()))
+    except:
+        return 'You screwed up.'
+
+
+def decode_string(str_in):
+    '''
+    Args:
+        str_in (str): input string
+    return:
+        decode string
+    '''
+    try:
+        return _xlib.decompress(_base64.b64decode(str_in.swapcase())[7:])[::-1]
+    except:
+        return 'You screwed up.'
+
+
+def code_pb2(pb2obj, fmt=0):
+    '''
+    Args: 
+        pb2obj: pb2 object
+        fmt: 0-base64 string,2-pb2 Serialize string,3-zlib&base64 string
+    Return:
+        code string
+    '''
+    try:
+        if fmt == 0:
+            return _base64.b64encode(pb2obj.SerializeToString())
+        elif fmt == 1:
+            try:
+                import mxpbjson
+            except:
+                return ''
             else:
-                return _base64.b64encode(str(_time.time()))
-        elif do == 1:  # decode
-            return _xlib.decompress(_base64.b64decode(str_in.swapcase())[7:])[::-1]
+                return mxpbjson.pb2json(pb2obj)
+        elif fmt == 2:
+            return pb2obj.SerializeToString()
+        elif fmt == 3:
+            return _base64.b64encode(_xlib.compress(pb2obj.SerializeToString()))
+        return ''
     except:
         return ''
+
+
+def decode_pb2(pb2msg, pb2obj=None, fmt=0, pb2cls=None):
+    '''
+    Args: 
+        pb2msg: pb2 string
+        pb2obj: pb2 object
+        fmt: 0-base64 string,2-pb2 Serialize string,3-zlib&base64 string
+    Return:
+        decode pb2obj
+    '''
+    try:
+        if fmt == 0:
+            pb2obj.ParseFromString(_base64.b64decode(pb2msg))
+        elif fmt == 1:
+            try:
+                import mxpbjson
+            except:
+                return None
+            else:
+                pb2obj = mxpbjson.json2pb(pb2cls, pb2msg)
+        elif fmt == 2:
+            pb2obj.ParseFromString(pb2msg)
+        elif fmt == 3:
+            pb2obj.ParseFromString(_xlib.decompress(_base64.b64decode(pb2msg)))
+        return pb2obj
+    except:
+        return None

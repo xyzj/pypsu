@@ -7,7 +7,6 @@ __doc__ = 'tornado web handler rewrite'
 import tornado
 import time
 import os
-import json
 import mxpsu as mx
 import zlib
 import codecs
@@ -23,13 +22,13 @@ p = os.path.join(mx.SCRIPT_DIR, '.salt')
 if os.path.isfile(p):
     try:
         with codecs.open(p, 'r', 'utf-8') as f:
-            __salt = f.readline().strip()
+            x = f.readline().strip()
+            if x != 'You screwed up.':
+                __salt = x
             f.close()
+            del x
     except:
         pass
-if len(__salt) == 0:
-    __salt = zlib.decompress('x\x9c35N3M662\x00\x00\t;\x01\xfc')
-
 del p
 
 
@@ -78,11 +77,11 @@ class MXRequestHandler(tornado.web.RequestHandler):
     def prepare(self):
         if self.request.method == 'POST':
             xargs = self.request.arguments.copy()
-            
+
             if not self.settings.get('record_all', False):
                 self.request.uri = self.request.path
                 xargs.pop('uuid', '')
-            x = json.dumps(xargs, separators=(',', ':'))
+            x = str(xargs).replace("': '", "':'").replace("', '", "','")
             if len(x) > 0:
                 logging.debug(self.format_log(self.request.remote_ip, x, self.request.path, 'REQ'))
             del x, xargs
@@ -104,20 +103,38 @@ class MXRequestHandler(tornado.web.RequestHandler):
         return '{3} {1} ({0}) {2}'.format(remote_ip, path, msg, method)
 
     def computing_security_code(self, scode):
+        xsalt = zlib.decompress('x\x9c35N3M662\x00\x00\t;\x01\xfc')
+
         x = set([mx.getMD5('{0}{1}'.format(
             mx.stamp2time(time.time(),
                           format_type='%Y%m%d%H'),
-            self.salt))])
+            xsalt))])
+        if self.salt != '':
+            x = set([mx.getMD5('{0}{1}'.format(
+                mx.stamp2time(time.time(),
+                              format_type='%Y%m%d%H'),
+                self.salt))])
+
         if time.localtime()[4] >= 55:
             x.add(mx.getMD5('{0}{1}'.format(
                 mx.stamp2time(time.time() + 360,
                               format_type='%Y%m%d%H'),
-                self.salt)))
+                xsalt)))
+            if self.salt != '':
+                x.add(mx.getMD5('{0}{1}'.format(
+                    mx.stamp2time(time.time() + 360,
+                                  format_type='%Y%m%d%H'),
+                    self.salt)))
         elif time.localtime()[4] < 5:
             x.add(mx.getMD5('{0}{1}'.format(
                 mx.stamp2time(time.time() - 360,
                               format_type='%Y%m%d%H'),
-                self.salt)))
+                xsalt)))
+            if self.salt != '':
+                x.add(mx.getMD5('{0}{1}'.format(
+                    mx.stamp2time(time.time() - 360,
+                                  format_type='%Y%m%d%H'),
+                    self.salt)))
 
         return 1 if scode.lower() in x else 0
 
