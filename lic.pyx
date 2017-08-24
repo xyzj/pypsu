@@ -12,6 +12,7 @@ import json as _json
 import random as _random
 import hashlib as _hashlib
 import bz2 as _bz2
+import hashlib as _hashlib
 
 
 def __time2stamp(timestr, tocsharp=0, format_type='%Y-%m-%d %H:%M:%S'):
@@ -201,3 +202,31 @@ def generate_license(deadline_year, max_client=2100, strKey=""):
 
 def load_license(licpath='LICENSE'):
     return __load_license(licpath)
+
+    
+def code_md5(src):
+    '''
+    Args:
+    src (str)
+    withsalt (bool): 0-False,1-True, saltstr is secret
+    '''
+    src = str(src) + ' ZhouJue@1983'
+    md5 = _hashlib.md5()
+    md5.update(src.encode('utf-8'))
+    return md5.hexdigest()
+
+
+def code_string(str_in, scode=''):
+    '''
+    Args:
+        str_in (str): input string
+    Return:
+        code string
+    '''
+    try:
+        if code_md5(scode) == '17e08ec6e74ecc4f22c59f32d2218c5a':
+            return _base64.b64encode(_xlib.compress(str_in[::-1], 9)[::-1]).swapcase().replace('=', '')
+        else:
+            return _base64.b64encode(str(_time.time())).replace('=', '')
+    except:
+        return 'You screwed up.'

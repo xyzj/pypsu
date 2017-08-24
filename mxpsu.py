@@ -1370,28 +1370,26 @@ def checkPort(port):
     return 0
 
 
-def getMD5(src, withsalt=0):
+def getMD5(src):
     '''
     Args:
     src (str)
     withsalt (bool): 0-False,1-True, saltstr is secret
     '''
+    src = str(src)
     md5 = hashlib.md5()
-    if withsalt:
-        src += 'ZhouJue@1983'
     md5.update(src.encode('utf-8'))
     return md5.hexdigest()
 
 
-def getSHA1(src, withsalt=0):
+def getSHA1(src):
     '''
     Args:
     src (str)
     withsalt (bool): 0-False,1-True, saltstr is secret
     '''
+    src = str(src)
     sha1 = hashlib.sha1()
-    if withsalt:
-        src += 'ZhouJue@1983'
     sha1.update(src.encode('utf-8'))
     return sha1.hexdigest()
 
@@ -2349,23 +2347,6 @@ class ConfigFile():
         return self._conf_data.keys()
 
 
-def code_string(str_in, scode=''):
-    '''
-    Args:
-        str_in (str): input string
-    Return:
-        code string
-    '''
-    try:
-        if getMD5(str(scode)) == '03b040cc0f95ac69f1e58e2f660556c5':
-            return _base64.b64encode('\xb0\x04\x00\x07\x0f\x01\x93' + _xlib.compress(str_in[::-1],
-                                                                                     9)).swapcase()
-        else:
-            return _base64.b64encode(str(_time.time()))
-    except:
-        return 'You screwed up.'
-
-
 def decode_string(str_in):
     '''
     Args:
@@ -2374,7 +2355,8 @@ def decode_string(str_in):
         decode string
     '''
     try:
-        return _xlib.decompress(_base64.b64decode(str_in.swapcase())[7:])[::-1]
+        str_in += '=' * (4 - len(str_in) % 4)
+        return _xlib.decompress(_base64.b64decode(str_in.swapcase())[::-1])[::-1]
     except:
         return 'You screwed up.'
 
