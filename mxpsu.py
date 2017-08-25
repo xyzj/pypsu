@@ -2356,7 +2356,7 @@ def decode_string(str_in):
     '''
     try:
         str_in += '=' * (4 - len(str_in) % 4)
-        return _xlib.decompress(_base64.b64decode(str_in.swapcase())[::-1])[::-1]
+        return _xlib.decompress(b'x\x9c' + _base64.b64decode(str_in.swapcase())[::-1])[::-1]
     except:
         return 'You screwed up.'
 
@@ -2399,7 +2399,7 @@ def decode_pb2(pb2msg, pb2obj=None, fmt=0, pb2cls=None):
     '''
     try:
         if fmt == 0:
-            pb2obj.ParseFromString(_base64.b64decode(pb2msg))
+            pb2obj.ParseFromString(_base64.b64decode(pb2msg.replace(' ', '+')))
         elif fmt == 1:
             try:
                 import mxpbjson
@@ -2410,7 +2410,7 @@ def decode_pb2(pb2msg, pb2obj=None, fmt=0, pb2cls=None):
         elif fmt == 2:
             pb2obj.ParseFromString(pb2msg)
         elif fmt == 3:
-            pb2obj.ParseFromString(_xlib.decompress(_base64.b64decode(pb2msg)))
+            pb2obj.ParseFromString(_xlib.decompress(_base64.b64decode(pb2msg.replace(' ', '+'))))
         return pb2obj
     except:
         return None

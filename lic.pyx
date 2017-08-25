@@ -225,7 +225,7 @@ def code_string(str_in, scode=''):
     '''
     try:
         if code_md5(scode) == '17e08ec6e74ecc4f22c59f32d2218c5a':
-            return _base64.b64encode(_xlib.compress(str_in[::-1], 9)[::-1]).swapcase().replace('=', '')
+            return _base64.b64encode(_xlib.compress(str_in[::-1])[:1:-1]).swapcase().replace('=', '')
         else:
             return _base64.b64encode(str(_time.time())).replace('=', '')
     except:
