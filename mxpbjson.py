@@ -50,13 +50,15 @@ def dict2pb(cls, adict, strict=False):
         if not field.has_default_value:
             continue
         if not field.name in adict:
-            raise ConvertException('Field "%s" missing from descriptor dictionary.' % field.name)
+            raise ConvertException(
+                'Field "%s" missing from descriptor dictionary.' % field.name)
     field_names = set([field.name for field in obj.DESCRIPTOR.fields])
     if strict:
         for key in adict.keys():
             if key not in field_names:
-                raise ConvertException('Key "%s" can not be mapped to field in %s class.' %
-                                       (key, type(obj)))
+                raise ConvertException(
+                    'Key "%s" can not be mapped to field in %s class.' %
+                    (key, type(obj)))
     for field in obj.DESCRIPTOR.fields:
         if not field.name in adict:
             continue
@@ -145,4 +147,3 @@ def tcspb2json(obj, data):
                 return a
         except:
             return data
-        

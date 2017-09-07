@@ -1180,6 +1180,8 @@ def __cur_file_dir():
         return path
     elif _os.path.isfile(path):
         return _os.path.dirname(path)
+    else:
+        return '.'
 
 
 SCRIPT_DIR = __cur_file_dir()
@@ -1330,8 +1332,9 @@ class GpsDistance():
         Returns:
             TYPE: Description
         """
-        return 6370996.81 * _math.acos(_math.sin(c) * _math.sin(d) + _math.cos(c) * _math.cos(d) *
-                                       _math.cos(b - a))
+        return 6370996.81 * _math.acos(
+            _math.sin(c) * _math.sin(d) +
+            _math.cos(c) * _math.cos(d) * _math.cos(b - a))
 
     def Wv(self, a, b):
         """Summary
@@ -1349,16 +1352,18 @@ class GpsDistance():
         a.lat = self.lw(a.lat, -74, 74)
         b.lng = self.ew(b.lng, -180, 180)
         b.lat = self.lw(b.lat, -74, 74)
-        return self.Td(self.oi(a.lng), self.oi(b.lng), self.oi(a.lat), self.oi(b.lat))
+        return self.Td(
+            self.oi(a.lng), self.oi(b.lng), self.oi(a.lat), self.oi(b.lat))
 
 
 def formatLog(log_txt, dateformat='%Y-%m-%d %H:%M:%S'):
     '''
     Args:
-    log_txt (str): 
+    log_txt (str):
     dateformat (str), default: %Y-%m-%d %H:%M:%S
     '''
-    a = str(u"{0} {1}".format(_time.strftime(dateformat, _time.localtime()), log_txt))
+    a = str(u"{0} {1}".format(
+        _time.strftime(dateformat, _time.localtime()), log_txt))
     return a
 
 
@@ -1616,6 +1621,7 @@ class PriorityQueue():
     def get_queue(self):
         return self.queu
 
+
 # def HEIGHT = 32
 # # chars = "   ...',;:jlrixtO0KXNWMMM"
 # def chars = "   .........rixtO0KXNWMMM"
@@ -1662,9 +1668,11 @@ def getLinuxIpAddress(ifname):
         import fcntl
 
         s = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM)
-        return _socket.inet_ntoa(fcntl.ioctl(s.fileno(),
-                                             0x8915,  # SIOCGIFADDR
-                                             _struct.pack('256s', ifname[:15]))[20:24])
+        return _socket.inet_ntoa(
+            fcntl.ioctl(
+                s.fileno(),
+                0x8915,  # SIOCGIFADDR
+                _struct.pack('256s', ifname[:15]))[20:24])
     except:
         return ''
 
@@ -1738,7 +1746,8 @@ def time2stamp(timestr, tocsharp=0, format_type='%Y-%m-%d %H:%M:%S'):
 
     try:
         if tocsharp > 0:
-            return int(_time.mktime(_time.strptime(timestr, format_type)) * z + y)
+            return int(
+                _time.mktime(_time.strptime(timestr, format_type)) * z + y)
         else:
             return int(_time.mktime(_time.strptime(timestr, format_type)))
     except Exception as ex:
@@ -1766,7 +1775,8 @@ def stamp2time(stamp, fromcsharp=0, format_type='%Y-%m-%d %H:%M:%S'):
                 _datetime.datetime.fromtimestamp((stamp - y) / z), format_type)
             # return _time.strftime(format_type, _time.localtime((stamp - y) / z))
         else:
-            return _datetime.datetime.strftime(_datetime.datetime.fromtimestamp(stamp), format_type)
+            return _datetime.datetime.strftime(
+                _datetime.datetime.fromtimestamp(stamp), format_type)
             # return _time.strftime(format_type, _time.localtime(stamp))
     except Exception as ex:
         print(ex)
@@ -1799,9 +1809,13 @@ def ip2int(strip, usehostorder=0):
     """
     try:
         if usehostorder > 0:
-            return long(_socket.htonl(_struct.unpack("!L", _socket.inet_aton(strip))[0]))
+            return long(
+                _socket.htonl(
+                    _struct.unpack("!L", _socket.inet_aton(strip))[0]))
         else:
-            return long(_socket.htonl(_struct.unpack("I", _socket.inet_aton(strip))[0]))
+            return long(
+                _socket.htonl(
+                    _struct.unpack("I", _socket.inet_aton(strip))[0]))
     except:
         return -1
 
@@ -1821,21 +1835,6 @@ def ip2string(intip, usehostorder=0):
             return _socket.inet_ntoa(_struct.pack('!L', _socket.ntohl(intip)))
         else:
             return _socket.inet_ntoa(_struct.pack('I', _socket.ntohl(intip)))
-    except:
-        return ''
-
-
-def convertProtobuf(pb2msg):
-    """Summary
-
-    Args:
-        pb2msg (pb2): Description
-
-    Returns:
-        str: Description
-    """
-    try:
-        return _base64.b64encode(pb2msg.SerializeToString())
     except:
         return ''
 
@@ -2001,7 +2000,7 @@ def list2string(datalist, splitchar="-"):
 
     # def getMac():
     #     """Summary
-    # 
+    #
     #     Returns:
     #         TYPE: Description
     #     """
@@ -2027,9 +2026,11 @@ def buildMac(head=0):
     # else:  # 本地网卡厂家
     #     machex = getMac()[:9]
     if machex != "":
-        mac = [hex(_random.randint(0x00, 0x7f)).replace('0x', ''),
-               hex(_random.randint(0x00, 0xff)).replace('0x', ''),
-               hex(_random.randint(0x00, 0xff)).replace('0x', '')]
+        mac = [
+            hex(_random.randint(0x00, 0x7f)).replace('0x', ''),
+            hex(_random.randint(0x00, 0xff)).replace('0x', ''),
+            hex(_random.randint(0x00, 0xff)).replace('0x', '')
+        ]
         hw = machex + ':'.join(mac)
         # def hw = machex + ':'.join(map(lambda x: "%s" % x, mac))
         # hw = machex + ':'.join(map(lambda x: "%02x" % x, mac))
@@ -2059,7 +2060,6 @@ def timeDifference(t1, t2):
 
 
 class Platform(object):
-
     @staticmethod
     def detail():
         return _PLATFORM
@@ -2116,7 +2116,8 @@ def ipDecompose(xips):
                 p = '0'
             a, b, c, d = xip[:xip.find('/')].split('.')
             l = int(xip[xip.find('/') + 1:])
-            e = '{0:08b}{1:08b}{2:08b}{3:08b}'.format(int(a), int(b), int(c), int(d))
+            e = '{0:08b}{1:08b}{2:08b}{3:08b}'.format(
+                int(a), int(b), int(c), int(d))
             f = int('1' * (8 * 4 - l), 2)
             g = e[:l]
             for i in range(1, f):
@@ -2126,7 +2127,8 @@ def ipDecompose(xips):
                 if p == '0':
                     xaddr.append(('{0}.{1}.{2}.{3}'.format(w, x, y, z)))
                 else:
-                    xaddr.append(('{0}.{1}.{2}.{3}'.format(w, x, y, z), int(p)))
+                    xaddr.append(('{0}.{1}.{2}.{3}'.format(w, x, y, z),
+                                  int(p)))
         else:
             xaddr.append((r.split(':')[0], int(r.split(':')[1])))
     return tuple(xaddr)
@@ -2147,7 +2149,6 @@ screen."""
 
 
 class GetchUnix():
-
     def __init__(self):
         pass
 
@@ -2166,7 +2167,6 @@ class GetchUnix():
 
 
 class GetchWindows():
-
     def __init__(self):
         pass
 
@@ -2214,14 +2214,14 @@ def copyFiles(sourceDir, targetDir):
             if not _os.path.exists(targetDir):
                 _os.makedirs(targetDir)
                 # 文件不存在,或大小不同,覆盖
-                if not _os.path.exists(targetf) or (_os.path.exists(targetf) and (
-                        _os.path.getsize(targetf) != _os.path.getsize(sourcef))):
+                if not _os.path.exists(targetf) or (
+                        _os.path.exists(targetf) and
+                    (_os.path.getsize(targetf) != _os.path.getsize(sourcef))):
                     # 二进制复制
                     open(targetf, 'wb').write(open(sourcef, 'rb').read())
 
 
 class ConfigFile():
-
     def __init__(self, path=''):
         '''
         Args:
@@ -2259,8 +2259,11 @@ class ConfigFile():
 
         with codecs.open(self._conf_file, 'w', 'utf-8') as f:
             try:
-                f.writelines([c + self.lineend if c.startswith('#') else c + self.lineend * 2
-                              for c in conf])
+                f.writelines([
+                    c + self.lineend
+                    if c.startswith('#') else c + self.lineend * 2
+                    for c in conf
+                ])
             except:
                 pass
             f.close()
@@ -2356,14 +2359,15 @@ def decode_string(str_in):
     '''
     try:
         str_in += '=' * (4 - len(str_in) % 4)
-        return _xlib.decompress(b'x\x9c' + _base64.b64decode(str_in.swapcase())[::-1])[::-1]
+        return _xlib.decompress(
+            b'x\x9c' + _base64.b64decode(str_in.swapcase())[::-1])[::-1]
     except:
         return 'You screwed up.'
 
 
 def code_pb2(pb2obj, fmt=0):
     '''
-    Args: 
+    Args:
         pb2obj: pb2 object
         fmt: 0-base64 string,2-pb2 Serialize string,3-zlib&base64 string
     Return:
@@ -2382,7 +2386,8 @@ def code_pb2(pb2obj, fmt=0):
         elif fmt == 2:
             return pb2obj.SerializeToString()
         elif fmt == 3:
-            return _base64.b64encode(_xlib.compress(pb2obj.SerializeToString()))
+            return _base64.b64encode(
+                _xlib.compress(pb2obj.SerializeToString()))
         return ''
     except:
         return ''
@@ -2390,7 +2395,7 @@ def code_pb2(pb2obj, fmt=0):
 
 def decode_pb2(pb2msg, pb2obj=None, fmt=0, pb2cls=None):
     '''
-    Args: 
+    Args:
         pb2msg: pb2 string
         pb2obj: pb2 object
         fmt: 0-base64 string,2-pb2 Serialize string,3-zlib&base64 string
@@ -2410,7 +2415,20 @@ def decode_pb2(pb2msg, pb2obj=None, fmt=0, pb2cls=None):
         elif fmt == 2:
             pb2obj.ParseFromString(pb2msg)
         elif fmt == 3:
-            pb2obj.ParseFromString(_xlib.decompress(_base64.b64decode(pb2msg.replace(' ', '+'))))
+            pb2obj.ParseFromString(
+                _xlib.decompress(_base64.b64decode(pb2msg.replace(' ', '+'))))
         return pb2obj
     except:
         return None
+
+
+def convertProtobuf(pb2msg):
+    """Summary
+
+    Args:
+        pb2msg (pb2): Description
+
+    Returns:
+        str: Description
+    """
+    return code_pb2(pb2msg)
