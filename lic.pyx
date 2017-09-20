@@ -203,7 +203,7 @@ def generate_license(deadline_year, max_client=2100, strKey=""):
 def load_license(licpath='LICENSE'):
     return __load_license(licpath)
 
-    
+
 def code_md5(src):
     '''
     Args:
@@ -228,5 +228,20 @@ def code_string(str_in, scode=''):
             return _base64.b64encode(_xlib.compress(str_in[::-1])[:1:-1]).swapcase().replace('=', '')
         else:
             return _base64.b64encode(str(_time.time())).replace('=', '')
+    except:
+        return 'You screwed up.'
+
+
+def decode_string(str_in):
+    '''
+    Args:
+        str_in (str): input string
+    return:
+        decode string
+    '''
+    try:
+        str_in += '=' * (4 - len(str_in) % 4)
+        return _xlib.decompress(
+            b'x\x9c' + _base64.b64decode(str_in.swapcase())[::-1])[::-1]
     except:
         return 'You screwed up.'

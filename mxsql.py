@@ -12,23 +12,23 @@ import Queue
 
 
 class MXMariadb(object):
-
-    def __init__(self,
-                 host='127.0.0.1',
-                 port=3306,
-                 user='root',
-                 pwd='1234',
-                 conv={1: int,
-                       2: int,
-                       3: int,
-                       4: float,
-                       5: float,
-                       8: int,
-                       9: int},
-                 client_flag=32 | 65536 | 131072,
-                 maxconn=20):
+    def __init__(
+            self,
+            host='127.0.0.1',
+            port=3306,
+            user='root',
+            pwd='1234',
+            conv={1: int,
+                  2: int,
+                  3: int,
+                  4: float,
+                  5: float,
+                  8: int,
+                  9: int},
+            client_flag=32 | 65536 | 131072,
+            maxconn=20):
         """mariadb访问类初始化
-        Args:    
+        Args:
             host: mariadb服务器名
             port: mariadb服务端口
             user: mariradb访问用户名
@@ -54,13 +54,14 @@ class MXMariadb(object):
 
     def _build_conn(self):
         try:
-            cn = mysql.connect(host=self.host,
-                               port=self.port,
-                               user=self.user,
-                               passwd=self.pwd,
-                               conv=self.conv,
-                               client_flag=self.client_flag,
-                               connect_timeout=7)
+            cn = mysql.connect(
+                host=self.host,
+                port=self.port,
+                user=self.user,
+                passwd=self.pwd,
+                conv=self.conv,
+                client_flag=self.client_flag,
+                connect_timeout=7)
             cn.set_character_set('utf8')
         except Exception as ex:
             self.error_msg = '_mysql conn error: {0}'.format(ex)
@@ -76,13 +77,17 @@ class MXMariadb(object):
             cn = self._build_conn()
         else:
             try:
-                cn = self.conn_queue.get(timeout=7)
+                while True:
+                    cn = self.conn_queue.get_nowait()
 
-                if not cn.stat().startswith('Uptime:'):
-                    cn.close()
-                    del cn
-                    raise Exception('MySQL server has something wrong')
+                    if not cn.stat().startswith('Uptime:'):
+                        cn.close()
+                        del cn
+                    else:
+                        break
+                    # raise Exception('MySQL server has something wrong')
             except Exception as ex:
+                # self.get_conn()
                 cn = self._build_conn()
         return cn
 
