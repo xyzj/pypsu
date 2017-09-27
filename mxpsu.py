@@ -8,7 +8,6 @@ try:
     import threading as _threading
 except ImportError:
     import dummy_threading as _threading
-
 import base64 as _base64
 import time as _time
 import datetime as _datetime
@@ -1809,11 +1808,11 @@ def ip2int(strip, usehostorder=0):
     """
     try:
         if usehostorder > 0:
-            return long(
+            return int(
                 _socket.htonl(
                     _struct.unpack("!L", _socket.inet_aton(strip))[0]))
         else:
-            return long(
+            return int(
                 _socket.htonl(
                     _struct.unpack("I", _socket.inet_aton(strip))[0]))
     except:
@@ -1854,7 +1853,7 @@ def hexString(argv):
         TYPE: Description
     """
     a = hexList(list(argv))
-    b = [hex(s).replace('0x', '') for s in a]
+    b = ['{0:02x}'.format(s) for s in a]
     return '-'.join(b)
 
 
@@ -2357,12 +2356,16 @@ def decode_string(str_in):
     return:
         decode string
     '''
-    try:
-        str_in += '=' * (4 - len(str_in) % 4)
-        return _xlib.decompress(
-            b'x\x9c' + _base64.b64decode(str_in.swapcase())[::-1])[::-1]
-    except:
-        return 'You screwed up.'
+    # try:
+    str_in += '=' * (4 - len(str_in) % 4)
+    y = _base64.b64decode(str_in.swapcase())
+    x = int(y[:2])
+    z = y[2:]
+    z = ''.join(
+        [chr(ord(a) - x if ord(a) >= x else ord(a) + 256 - x) for a in z])
+    return _xlib.decompress('x\x9c' + z[::-1])[::-1]
+    # except Exception as ex:
+    #     return 'You screwed up.' + str(ex)
 
 
 def code_pb2(pb2obj, fmt=0):

@@ -18,8 +18,9 @@ import hashlib as _hashlib
 def __time2stamp(timestr, tocsharp=0, format_type='%Y-%m-%d %H:%M:%S'):
     try:
         if tocsharp:
-            return int(_time.mktime(_time.strptime(timestr, format_type)) * 10000000 +
-                       621356256000000000)
+            return int(
+                _time.mktime(_time.strptime(timestr, format_type)) * 10000000 +
+                621356256000000000)
         else:
             return int(_time.mktime(_time.strptime(timestr, format_type)))
     except:
@@ -78,7 +79,9 @@ def __destroy_license(strlic, licpath='LICENSE'):
     b.extend(range(65, 91))
     b.extend(range(97, 123))
     l2 = _random.randint(0, len(b))
-    slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l], chr(b[l2]), strlic[l:len(strlic) - 2], str(l),
+    slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l],
+                                       chr(b[l2]), strlic[l:len(strlic) - 2],
+                                       str(l),
                                        len(str(l)), strlic[len(strlic) - 2:])
     l = len(slic)
     llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
@@ -87,6 +90,7 @@ def __destroy_license(strlic, licpath='LICENSE'):
     with open(licpath, 'w') as f:
         f.writelines([c + "\n" for c in llic])
     return None
+
 
 # __decrypt_string(str strCText, str strKey=""):
 #     if strCText.strip() == "":
@@ -108,7 +112,8 @@ def __decrypt_string(strCText, strKey=""):
 def __encrypt_string(strText, strKey=""):
     md5 = _hashlib.md5()
     md5.update(strKey)
-    if strText.strip() == "" or md5.hexdigest() != '0e9cf665704b62ef1d9e87680b6e3633':
+    if strText.strip(
+    ) == "" or md5.hexdigest() != '0e9cf665704b62ef1d9e87680b6e3633':
         return strText
     print(_base64.b64encode(_bz2.compress(strText, 9)).swapcase())
     return _base64.b64encode(_bz2.compress(strText, 9)).swapcase()
@@ -135,12 +140,16 @@ def __build_history():
     a = _base64.b64encode(oh)
     x = a.count("=")
     l = len(a)
-    return "{0}{1}{2}{3}{4}{5}".format(a[:8], len(str(l)), x, a[8:21], l, a[21:]).replace("=", "z")
+    return "{0}{1}{2}{3}{4}{5}".format(a[:8],
+                                       len(str(l)), x, a[8:21], l,
+                                       a[21:]).replace("=", "z")
 
 
 def __generate_license(deadline_year, max_client=2100, strKey=""):
-    zlic = {"deadline": __time2stamp('{0}-08-21 17:55:00'.format(deadline_year)),
-            "maxclients": max_client}
+    zlic = {
+        "deadline": __time2stamp('{0}-08-21 17:55:00'.format(deadline_year)),
+        "maxclients": max_client
+    }
     lic = _json.dumps(zlic, separators=(',', ':'))
     # lic = str(zlic).replace("'", "")
     slic = __encrypt_string(lic, strKey).swapcase()
@@ -193,7 +202,8 @@ def __load_license(licpath='LICENSE'):
     except:
         return "err:License file load error."
 
-    return 'The license will expire in {0} days {1} hours.'.format(x / 3600 / 24, x / 3600 % 24)
+    return 'The license will expire in {0} days {1} hours.'.format(
+        x / 3600 / 24, x / 3600 % 24)
 
 
 def generate_license(deadline_year, max_client=2100, strKey=""):
@@ -225,7 +235,14 @@ def code_string(str_in, scode=''):
     '''
     try:
         if code_md5(scode) == '17e08ec6e74ecc4f22c59f32d2218c5a':
-            return _base64.b64encode(_xlib.compress(str_in[::-1])[:1:-1]).swapcase().replace('=', '')
+            x = _random.randint(10, 99)
+            y = _xlib.compress(str_in[::-1])[:1:-1]
+            z = ''.join([
+                chr(ord(a) + x if ord(a) <= 255 - x else ord(a) + x - 256)
+                for a in y
+            ])
+            return _base64.b64encode('{0}{1}'.format(x, z)).swapcase().replace(
+                '=', '')
         else:
             return _base64.b64encode(str(_time.time())).replace('=', '')
     except:
@@ -241,7 +258,11 @@ def decode_string(str_in):
     '''
     try:
         str_in += '=' * (4 - len(str_in) % 4)
-        return _xlib.decompress(
-            b'x\x9c' + _base64.b64decode(str_in.swapcase())[::-1])[::-1]
+        y = _base64.b64decode(str_in.swapcase())
+        x = int(y[:2])
+        z = y[2:]
+        z = ''.join(
+            [chr(ord(a) - x if ord(a) >= x else ord(a) + 256 - x) for a in z])
+        return _xlib.decompress('x\x9c' + z[::-1])[::-1]
     except:
         return 'You screwed up.'

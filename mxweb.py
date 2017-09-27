@@ -48,6 +48,7 @@ class MXRequestHandler(tornado.web.RequestHandler):
 
     def initialize(self, help_doc=''):
         self.help_doc = help_doc
+
     #     self.salt = ''
     #     if os.path.isfile('.salt'):
     #         try:
@@ -64,7 +65,9 @@ class MXRequestHandler(tornado.web.RequestHandler):
             chunk = ''
         super(MXRequestHandler, self).write(chunk)
         if self.request.method == 'POST':
-            logging.debug(self.format_log(self.request.remote_ip, chunk, self.request.path, 'REP'))
+            logging.debug(
+                self.format_log(self.request.remote_ip, chunk,
+                                self.request.path, 'REP'))
 
     # def on_finish(self):
     #     if self.request.method == 'POST' and len(self.post_log_msg) > 0:
@@ -83,7 +86,9 @@ class MXRequestHandler(tornado.web.RequestHandler):
                 xargs.pop('uuid', '')
             x = str(xargs).replace("': '", "':'").replace("', '", "','")
             if len(x) > 0:
-                logging.debug(self.format_log(self.request.remote_ip, x, self.request.path, 'REQ'))
+                logging.debug(
+                    self.format_log(self.request.remote_ip, x,
+                                    self.request.path, 'REQ'))
             del x, xargs
         elif self.request.method == 'GET':
             jobs = self.get_arguments('do')
@@ -92,7 +97,9 @@ class MXRequestHandler(tornado.web.RequestHandler):
                     if self.sd == 0:
                         self.sd = 1
                         try:
-                            with codecs.open(os.path.join(mx.SCRIPT_DIR, '.sd'), 'w', 'utf-8') as f:
+                            with codecs.open(
+                                    os.path.join(mx.SCRIPT_DIR, '.sd'), 'w',
+                                    'utf-8') as f:
                                 f.write(str(time.time()))
                                 f.close()
                         except:
@@ -105,36 +112,39 @@ class MXRequestHandler(tornado.web.RequestHandler):
     def computing_security_code(self, scode):
         xsalt = zlib.decompress('x\x9c35N3M662\x00\x00\t;\x01\xfc')
 
-        x = set([mx.getMD5('{0}{1}'.format(
-            mx.stamp2time(time.time(),
-                          format_type='%Y%m%d%H'),
-            xsalt))])
+        x = set([
+            mx.getMD5('{0}{1}'.format(
+                mx.stamp2time(time.time(), format_type='%Y%m%d%H'), xsalt))
+        ])
         if self.salt != '':
-            x = set([mx.getMD5('{0}{1}'.format(
-                mx.stamp2time(time.time(),
-                              format_type='%Y%m%d%H'),
-                self.salt))])
+            x = set([
+                mx.getMD5('{0}{1}'.format(
+                    mx.stamp2time(time.time(), format_type='%Y%m%d%H'),
+                    self.salt))
+            ])
 
         if time.localtime()[4] >= 55:
-            x.add(mx.getMD5('{0}{1}'.format(
-                mx.stamp2time(time.time() + 360,
-                              format_type='%Y%m%d%H'),
-                xsalt)))
+            x.add(
+                mx.getMD5('{0}{1}'.format(
+                    mx.stamp2time(time.time() + 360, format_type='%Y%m%d%H'),
+                    xsalt)))
             if self.salt != '':
-                x.add(mx.getMD5('{0}{1}'.format(
-                    mx.stamp2time(time.time() + 360,
-                                  format_type='%Y%m%d%H'),
-                    self.salt)))
+                x.add(
+                    mx.getMD5('{0}{1}'.format(
+                        mx.stamp2time(
+                            time.time() + 360, format_type='%Y%m%d%H'),
+                        self.salt)))
         elif time.localtime()[4] < 5:
-            x.add(mx.getMD5('{0}{1}'.format(
-                mx.stamp2time(time.time() - 360,
-                              format_type='%Y%m%d%H'),
-                xsalt)))
+            x.add(
+                mx.getMD5('{0}{1}'.format(
+                    mx.stamp2time(time.time() - 360, format_type='%Y%m%d%H'),
+                    xsalt)))
             if self.salt != '':
-                x.add(mx.getMD5('{0}{1}'.format(
-                    mx.stamp2time(time.time() - 360,
-                                  format_type='%Y%m%d%H'),
-                    self.salt)))
+                x.add(
+                    mx.getMD5('{0}{1}'.format(
+                        mx.stamp2time(
+                            time.time() - 360, format_type='%Y%m%d%H'),
+                        self.salt)))
 
         return 1 if scode.lower() in x else 0
 
@@ -146,14 +156,14 @@ def load_handler_module(handler_module, perfix=".*$"):
     for i in dir(handler_module):
         cls = getattr(handler_module, i)
         if is_handler(cls) and has_pattern(cls):
-            handlers.append((cls.url_pattern, cls, handler_module.__name__, cls.help_doc))
+            handlers.append((cls.url_pattern, cls, handler_module.__name__,
+                             cls.help_doc))
     # self.handlers.extend(handlers)
     # self.add_handlers(perfix, handlers)
     return handlers
 
 
 def route():
-
     def handler_wapper(cls):
         assert (issubclass(cls, MXRequestHandler))
         if cls.salt is None:
