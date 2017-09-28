@@ -2356,16 +2356,16 @@ def decode_string(str_in):
     return:
         decode string
     '''
-    # try:
-    str_in += '=' * (4 - len(str_in) % 4)
-    y = _base64.b64decode(str_in.swapcase())
-    x = int(y[:2])
-    z = y[2:]
-    z = ''.join(
-        [chr(ord(a) - x if ord(a) >= x else ord(a) + 256 - x) for a in z])
-    return _xlib.decompress('x\x9c' + z[::-1])[::-1]
-    # except Exception as ex:
-    #     return 'You screwed up.' + str(ex)
+    try:
+        str_in += '=' * (4 - len(str_in) % 4)
+        y = _base64.b64decode(str_in.swapcase())
+        x = int(y[:2])
+        z = y[2:]
+        z = ''.join(
+            [chr(ord(a) - x if ord(a) >= x else ord(a) + 256 - x) for a in z])
+        return _xlib.decompress('x\x9c' + z[::-1])[::-1]
+    except Exception as ex:
+        return 'You screwed up.' + str(ex)
 
 
 def code_pb2(pb2obj, fmt=0):
