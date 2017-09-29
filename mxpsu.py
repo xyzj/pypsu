@@ -1188,18 +1188,18 @@ SCRIPT_NAME = _sys.argv[0].rpartition('\\')[2]
 KEEP_ALIVE = '3a-53-3b-a0'  # 1983-08-19 03:12:00~2014-08-21 18:00:00
 
 
-def int2bcd(value):
-    """
-    int转bcd
-    """
-    return (value >> 4) * 10 + (value & 0x0f)
-
-
 def bcd2int(value):
     """
     bcd转int
     """
-    return ((value / 10) << 4) + (value % 10)
+    return ((value & 0xf0) >> 4) * 10 + (value & 0x0f)
+
+
+def int2bcd(value):
+    """
+    int转bcd
+    """
+    return ((value / 10) << 4) | (value % 10)
 
 
 class GpsPoint():
