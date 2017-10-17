@@ -10,16 +10,19 @@ import time as _time
 import sys as _sys
 import json as _json
 import random as _random
-import zlib as _xlib
 import select as _select
+import zlib as _xlib
 import bz2 as _bz2
 import base64 as _base64
-from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hexBytesString
+from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hex2string
 import gc as _gc
 import os as _os
 from gevent import monkey
-monkey.patch_all()
-reload(_select)
+if _os.name == 'nt':
+    monkey.patch_all()
+elif _os.name == 'posix':
+    monkey.patch_socket()
+# reload(_select)
 
 IS_EXIT = 0
 # 发送队列{fd, SendData}
@@ -300,12 +303,13 @@ class ClientSession(object):
         self.clientid = -1
         self.attributes = []
         self.name = ''
-        self.ka = hexBytesString('3a-53-3b-a0'.split('-'))
+        self.ka = hex2string('3a-53-3b-a0')
         self.recognition = -1  # 1-tml,2-data,3-client,4-sdcmp,5-fwdcs,6-upgrade
         self.wait4send = None
         self.guardtime = 0
         self.address = address
-        self.ip_int = ip2int(address[0])
+        self.ip_uint = ip2int(address[0])
+        self.ip_int64 = ip2int(address[0], 1)
         self.temp_recv_buffer = ''
         self.nothing_to_send = 1
         self.server_port = serverport

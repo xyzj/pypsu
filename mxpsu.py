@@ -20,6 +20,7 @@ import hashlib
 import codecs
 import zlib as _xlib
 import sys as _sys
+import binascii
 reload(_sys)
 _sys.setdefaultencoding(_sys.getfilesystemencoding())
 
@@ -1838,9 +1839,29 @@ def ip2string(intip, usehostorder=0):
         return ''
 
 
-def hexBytesString(lstargv):
-    b = ["{0:02x}".format(int(a, 16)) for a in lstargv]
-    return "".join(b).decode('hex')
+def string2hex(str_in, splitchar="-"):
+    return splitchar.join(cutString(binascii.hexlify(str_in), 2))
+
+
+def hex2string(hex_in, splitchar="-"):
+    return binascii.unhexlify(hex_in.replace(splitchar, ''))
+
+
+def string2lst(str_in):
+    return [ord(a) for a in str_in]
+
+
+def lst2string(lst_in):
+    return ''.join(["{0:02x}".format(int(a, 16))
+                    for a in lst_in]).decode('hex')
+
+
+def hex2lst(hex_in, splitchar="-"):
+    return [int(a, 16) for a in hex_in.split(splitchar)]
+
+
+def lst2hex(lst_in, splitchar="-"):
+    return splitchar.join(["{0:02x}".format(a) for a in lst_in])
 
 
 def hexString(argv):
@@ -1902,6 +1923,36 @@ def lrcVB(databytes):
     for d in databytes:
         a = a ^ d
     return a
+
+
+def crc32_string(str_in):
+    if _sys.version_info[0] == 2:
+        return binascii.crc32(str_in) & 0xffffffff
+    elif _sys.version_info[0] == 3:
+        return binascii.crc32(str_in)
+
+
+def crc32_file(filename):
+    if _os.path.isfile(filename):
+        blocksize = 1024 * 64
+        try:
+            with open(filename, 'rb') as f:
+                s = f.read(blocksize)
+                crc = 0
+                if _sys.version_info[0] == 2:
+                    while len(s) != 0:
+                        crc = binascii.crc32(s, crc) & 0xffffffff
+                        s = f.read(blocksize)
+                elif _sys.version_info[0] == 3:
+                    while len(s) != 0:
+                        crc = binascii.crc32(s, crc)
+                        s = f.read(blocksize)
+                f.close()
+            return crc
+        except:
+            return 0
+    else:
+        return 0
 
 
 def checkCrc16(databytes):
@@ -1969,12 +2020,14 @@ def bytes2string(databytes, splitchar="-", noformat=1):
     """
     s = ""
     if noformat:
-        for d in databytes:
-            s += splitchar + "{0:x}".format(int(d))
+        return splitchar.join(["{0:x}".format(int(d)) for d in databytes])
+        # for d in databytes:
+        #     s += splitchar + "{0:x}".format(int(d))
     else:
-        for d in databytes:
-            s += splitchar + "{0:02x}".format(int(d))
-    return s[len(splitchar):]
+        return splitchar.join(["{0:02x}".format(int(d)) for d in databytes])
+        # for d in databytes:
+        #     s += splitchar + "{0:02x}".format(int(d))
+    # return s[len(splitchar):]
 
 
 def list2string(datalist, splitchar="-"):
@@ -2435,3 +2488,73 @@ def convertProtobuf(pb2msg):
         str: Description
     """
     return code_pb2(pb2msg)
+
+
+def hex_bin(hexfile, binfile):
+    fin = open(hexfile)
+    fout = open(binfile, 'wb')
+    result = ''
+    for hexstr in fin.readlines():
+        hexstr = hexstr.strip()
+        size = int(hexstr[1:3], 16)
+        if int(hexstr[7:9], 16) != 0:
+            continue
+        #end if
+        for h in range(0, size):
+            b = int(hexstr[9 + h * 2:9 + h * 2 + 2], 16)
+            result += _struct.pack('B', b)
+        #end if
+        fout.write(result)
+        result = ''
+    #end for
+    fin.close()
+    fout.close()
+
+
+# bin to hex
+def bin_hex(binfile, hexfile):
+    fbin = open(binfile, 'rb')
+    fhex = open(hexfile, 'w')
+    offset = 0
+    seg_addr = 0
+    while 1:
+        checksum = 0
+        result = ':'
+        bindata = fbin.read(0x10)
+        if len(bindata) == 0:
+            break
+        #end if
+        result += '%02X' % len(bindata)
+        result += '%04X' % offset
+        result += '00'
+        checksum = len(bindata)
+        checksum += (offset & 0xff) + (offset >> 8)
+
+        for i in range(0, len(bindata)):
+            byte = _struct.unpack('B', bindata[i])
+            result += '%02X' % byte
+            checksum += byte[0]
+        #end for
+        checksum = 0x01 + ~checksum
+        checksum = checksum & 0xff
+        result += '%02X/n' % checksum
+        fhex.write(result)
+        offset += len(bindata)
+        if offset == 0x10000:
+            offset = 0
+            seg_addr += 1
+            result = ':02000004'
+            result += '%02X%02X' % ((seg_addr >> 8) & 0xff, seg_addr & 0xff)
+            checksum = 0x02 + 0x04 + (seg_addr >> 8) + seg_addr & 0xff
+            checksum = -checksum
+            result += '%02X' % (checksum & 0xff)
+            result += '/n'
+            fhex.write(result)
+        #end if
+        if len(bindata) < 0x10:
+            break
+        #end if
+        #end while
+    fhex.write(':00000001FF')
+    fbin.close()
+    fhex.close()
