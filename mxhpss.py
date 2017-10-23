@@ -17,11 +17,6 @@ import base64 as _base64
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hex2string
 import gc as _gc
 import os as _os
-from gevent import monkey
-if _os.name == 'nt':
-    monkey.patch_all()
-elif _os.name == 'posix':
-    monkey.patch_socket()
 # reload(_select)
 
 IS_EXIT = 0
