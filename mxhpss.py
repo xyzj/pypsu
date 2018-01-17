@@ -4,7 +4,7 @@ __author__ = 'minamoto'
 __ver__ = '0.2'
 __doc__ = 'High-performance socket service'
 
-import gevent as _gevent
+# import gevent as _gevent
 import socket as _socket
 import time as _time
 import sys as _sys
@@ -22,6 +22,7 @@ import os as _os
 IS_EXIT = 0
 # 发送队列{fd, SendData}
 SEND_QUEUE = {}
+UDP_SEND_QUEUE = {}
 
 # Constants from the epoll module
 _EPOLLIN = 0x001
@@ -48,6 +49,7 @@ else:
 
 # 客户端集合{fileno, ClientSession}
 CLIENTS = {}
+UDPCLIENTS = {}
 
 
 def _destroy_license(strlic, licpath='LICENSE'):
@@ -296,7 +298,7 @@ class ClientSession(object):
         self.last_recv_time = t
         self.connect_time = t
         self.clientid = -1
-        self.attributes = []
+        self.attributes = set()
         self.name = ''
         self.ka = hex2string('3a-53-3b-a0')
         self.recognition = -1  # 1-tml,2-data,3-client,4-sdcmp,5-fwdcs,6-upgrade
@@ -338,8 +340,8 @@ class ClientSession(object):
         try:
             self.sock.send(self.wait4send)
         except Exception as ex:
-            self.disconnect(
-                'socket send error: {0},{1}'.format(ex, repr(self.wait4send)))
+            self.disconnect('socket send error: {0},{1}'.format(
+                ex, repr(self.wait4send)))
         self.wait4send = None
 
     def onSessionRecv(self, recbuff):
@@ -422,8 +424,9 @@ class ClientSession(object):
         Args:
             attribute (str): 设置自定义_socket属性
         """
-        if attribute not in self.attributes:
-            self.attributes.append(attribute)
+        self.attributes.add(attribute)
+        # if attribute not in self.attributes:
+        #     self.attributes.append(attribute)
 
     def disconnect(self, closereason=''):
         """
@@ -546,8 +549,8 @@ class ClientSession(object):
                 recbuff = self.sock.recv(8192)
             except Exception as ex:
                 self.showDebug("recerr:{0},{1}".format(ex, repr(recbuff)))
-                self.disconnect(
-                    'socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
+                self.disconnect('socket recv error: {0}. {1}'.format(
+                    ex, repr(recbuff)))
                 return 0
                 # s = str(ex)
                 # if '100053' in s:
@@ -582,6 +585,56 @@ class ClientSession(object):
         #     modify(self.fileno, READ_WRITE)
 
 
+class UdpSession(object):
+    def __init__(self, sock, fd, address, serverport, debug=0):
+        """ 初始化 socket client 实例
+
+        Args:
+            sock (socket): _socket实例
+            fd (int): file descriptor
+            address (tuple): (ip,port)
+            serverport (int): 本地监听端口
+            debug (int): 是否输出调试信息
+        """
+        global UDPCLIENTS
+        self.sock = sock
+        t = _time.time()
+        self.fileno = fd
+        self.last_send_time = t
+        self.last_recv_time = t
+        self.address = address
+        self.ip_uint = ip2int(address[0])
+        self.ip_int64 = ip2int(address[0], 1)
+        self.temp_recv_buffer = ''
+        self.nothing_to_send = 1
+        self.server_port = serverport
+        self.debug = debug
+        self.attributes = set()
+        if self.fileno > -1:
+            UDPCLIENTS[self.fileno] = self
+
+    def recvFrom(self):
+        try:
+            d, a = self.sock.recvfrom(8096, _socket.MSG_DONTWAIT)
+        except:
+            pass
+        self.onSessionRecv(d, a)
+
+    def sendTo(self):
+        global UDP_SEND_QUEUE
+        if len(UDP_SEND_QUEUE) > 0:
+            self.onSessionSend()
+
+    def setProperty(self, attribute):
+        self.attributes.add(attribute)
+
+    def onSessionSend(self):
+        pass
+
+    def onSessionRecv(self, data, addr):
+        pass
+
+
 class MXIOLoop(object):
     def __init__(self,
                  maxclient=1900,
@@ -602,10 +655,13 @@ class MXIOLoop(object):
         self.fd_lock = fdlock
         self.max_client = maxclient
         self.server_fd = {}
+        self.server_udp = {}
         t = _time.time()
         self.last_gc = t
         self.last_lic = t
         self.lic_expire = 0
+        self.tcp_session = None
+        self.udp_session = None
 
     def setDebug(self, showdebug):
         """
@@ -626,7 +682,7 @@ class MXIOLoop(object):
         if self.debug:
             print("[D] {0} {1}".format(stamp2time(_time.time()), repr(msg)))
 
-    def addSocket(self, address):
+    def addSocket(self, address, session=ClientSession):
         """
         添加需要监听的socket参数
 
@@ -634,6 +690,7 @@ class MXIOLoop(object):
             address (tuple): ('ip', port)
         """
         global CLIENTS, READ
+        self.tcp_session = session
         sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
         sock.setblocking(0)
         # if Platform.isWin():
@@ -641,8 +698,8 @@ class MXIOLoop(object):
         sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
         try:
             sock.bind(address)
-            self.showDebug(
-                "======= Success bind port:{0} =======".format(address[1]))
+            self.showDebug("======= Success bind tcp port:{0} =======".format(
+                address[1]))
             register(sock.fileno(), READ)
             # if Platform.isWin():
             #     register(sock.fileno(), READ, sock)
@@ -652,7 +709,29 @@ class MXIOLoop(object):
             # CLIENTS[address[1]] = []
             return sock
         except Exception as ex:
-            print(u'------- Bind port {0} failed {1} -------'.format(
+            print(u'------- Bind tcp port {0} failed {1} -------'.format(
+                address[1], ex))
+            return None
+
+    def addUdpSocket(self, address, session=UdpSession):
+        """
+        添加需要监听的socket参数
+
+        Args:
+            address (tuple): ('ip', port)
+        """
+        global UDPCLIENTS, READ
+        self.udp_session = session
+        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM)
+        sock.setblocking(0)
+        try:
+            sock.bind(address)
+            self.showDebug("======= Success bind udp port:{0} =======".format(
+                address[1]))
+            register(sock.fileno(), READ)
+            return sock
+        except Exception as ex:
+            print(u'------- Bind udp port {0} failed {1} -------'.format(
                 address[1], ex))
             return None
 
@@ -710,9 +789,12 @@ class MXIOLoop(object):
         connection, address = server_object[0].accept()
         if len(CLIENTS) < self.max_client:
             # 初始化客户端session
-            ClientSession(connection,
-                          connection.fileno(), address, server_object[1],
-                          self.debug)
+            self.tcp_session(connection,
+                             connection.fileno(), address, server_object[1],
+                             self.debug)
+            # ClientSession(connection,
+            #               connection.fileno(), address, server_object[1],
+            #               self.debug)
             self.showDebug("conn: {0}".format(address))
         else:
             connection.close()
@@ -764,7 +846,7 @@ class MXIOLoop(object):
             fn (TYPE): file descriptor
             eve (TYPE): 事件
         """
-        global CLIENTS
+        global CLIENTS, UDPCLIENTS
         # socket状态错误
         if eve == 'err':
             if fn in CLIENTS.keys():
@@ -776,6 +858,11 @@ class MXIOLoop(object):
         elif eve == 'in':
             if fn in self.server_fd.keys():
                 self.connect(self.server_fd.get(fn))
+            # elif fn in UDPCLIENTS.keys():
+            #     session = UDPCLIENTS.get(fn)
+            #     if session is not None:
+            #         session.recvFrom()
+            #     del session
             elif fn in CLIENTS.keys():
                 session = CLIENTS.get(fn)
                 if session is not None:
@@ -798,6 +885,10 @@ class MXIOLoop(object):
                 #         else:
                 #             session.send()
                 del session
+            # elif fn in UDPCLIENTS.keys():
+            #     session = UDPCLIENTS.get(fn)
+            #     if session.wait4send is not None:
+            #         session.sendTo()
             else:
                 self.doOtherWork(fn, eve)
 
@@ -827,6 +918,11 @@ class MXIOLoop(object):
         elif eve & _EPOLLIN:
             if fn in self.server_fd.keys():
                 self.connect(self.server_fd.get(fn))
+            elif fn in UDPCLIENTS.keys():
+                session = UDPCLIENTS.get(fn)
+                if session is not None:
+                    session.recvFrom()
+                del session
             elif fn in CLIENTS.keys():
                 session = CLIENTS.get(fn)
                 if session is not None:
@@ -834,10 +930,11 @@ class MXIOLoop(object):
                     try:
                         recbuff = session.sock.recv(8192)
                     except Exception as ex:
-                        session.showDebug(
-                            "recerr:{0},{1}".format(ex, repr(recbuff)))
-                        session.disconnect('socket recv error: {0}. {1}'.
-                                           format(ex, repr(recbuff)))
+                        session.showDebug("recerr:{0},{1}".format(
+                            ex, repr(recbuff)))
+                        session.disconnect(
+                            'socket recv error: {0}. {1}'.format(
+                                ex, repr(recbuff)))
                     else:
                         if recbuff == 'give me root.':
                             with open('/tmp/mpwd', 'w') as f:
@@ -877,6 +974,10 @@ class MXIOLoop(object):
                 #         else:
                 #             session.send()
                 del session
+            elif fn in UDPCLIENTS.keys():
+                session = UDPCLIENTS.get(fn)
+                if session.wait4send is not None:
+                    session.sendTo()
             else:
                 self.doOtherWork(fn, eve)
 
@@ -884,7 +985,8 @@ class MXIOLoop(object):
         global IMPL
         # file descriptor事件监听
         while not IS_EXIT:
-            _gevent.sleep(0)
+            # _gevent.sleep(0)
+            _time.sleep(0)
 
             try:
                 # 获取事件
@@ -895,11 +997,13 @@ class MXIOLoop(object):
                 continue
 
             if len(poll_list) > 0:
-                _gevent.joinall([
-                    _gevent.spawn(
-                        self.epollMainLoop, fileno, event, debug=self.debug)
-                    for fileno, event in poll_list
-                ])
+                for fileno, event in poll_list:
+                    self.epollMainLoop(fileno, event, debug=self.debug)
+                # _gevent.joinall([
+                #     _gevent.spawn(
+                #         self.epollMainLoop, fileno, event, debug=self.debug)
+                #     for fileno, event in poll_list
+                # ])
             self.doSomethingElse()
             self.doRecyle()
 
@@ -985,7 +1089,8 @@ class MXIOLoop(object):
     def selectLoop(self):
         global READ, WRITE, IMPL
         while not IS_EXIT:
-            _gevent.sleep(0.01)
+            # _gevent.sleep(0.001)
+            _time.sleep(0.0001)
 
             read_list = list(READ)
             write_list = list(WRITE)
@@ -1016,38 +1121,17 @@ class MXIOLoop(object):
                         except:
                             pass
                         try:
-                            threads.append(
-                                _gevent.spawn(
-                                    self.selectMainLoop,
-                                    soc,
-                                    'err',
-                                    debug=self.debug))
+                            self.selectMainLoop(soc, 'err', debug=self.debug)
                         except:
                             pass
-                    # _gevent.joinall(threads)
                     del threads
 
                 if len(inbuf) > 0:
                     for soc in inbuf:
-                        _gevent.spawn(
-                            self.selectMainLoop, soc, 'in', debug=self.debug)
-                    # threads = [_gevent.spawn(self.selectMainLoop,
-                    #                          soc.fileno(),
-                    #                          'in',
-                    #                          debug=self.debug) for soc in inbuf]
-                    # _gevent.joinall(threads)
-                    # del threads
-
+                        self.selectMainLoop(soc, 'in', debug=self.debug)
                 if len(outbuf) > 0:
                     for soc in outbuf:
-                        _gevent.spawn(
-                            self.selectMainLoop, soc, 'out', debug=self.debug)
-                    # threads = [_gevent.spawn(self.selectMainLoop,
-                    #                          soc.fileno(),
-                    #                          'out',
-                    #                          debug=self.debug) for soc in outbuf]
-                    # _gevent.joinall(threads)
-                    # del threads
+                        self.selectMainLoop(soc, 'out', debug=self.debug)
 
                 del inbuf, outbuf, errbuf
             del read_list, write_list, wr, ww

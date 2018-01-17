@@ -226,6 +226,32 @@ def code_md5(src):
     return md5.hexdigest()
 
 
+def code_message(str_in):
+    try:
+        oh = ''
+        x = _random.randint(1, 128)
+        oh = chr(x)
+        for s in str_in:
+            oh += chr(ord(s) + x)
+        return _base64.b64encode(oh).swapcase().replace('=', '')
+    except:
+        return 'You screwed up.'
+
+
+def decode_message(str_in):
+    try:
+        oh = ''
+        str_in += '=' * (4 - len(str_in) % 4)
+        y = _base64.b64decode(str_in.swapcase())
+        x = ord(y[0])
+        z = y[1:]
+        for s in z:
+            oh += chr(ord(s) - x)
+        return oh
+    except:
+        return 'You screwed up.'
+
+
 def code_string(str_in, scode=''):
     '''
     Args:
