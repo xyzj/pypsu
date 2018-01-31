@@ -216,8 +216,8 @@ class GpsDistance():
             TYPE: Description
         """
         return 6370996.81 * _math.acos(
-            _math.sin(c) * _math.sin(d) +
-            _math.cos(c) * _math.cos(d) * _math.cos(b - a))
+            _math.sin(c) * _math.sin(d) + _math.cos(c) * _math.cos(d) *
+            _math.cos(b - a))
 
     def Wv(self, a, b):
         """Summary
@@ -656,7 +656,9 @@ def switchStamp(stamp):
     z = 10000000.0
 
     try:
-        if stamp > y:
+        if stamp == 0 or len(str(stamp)) < 10:
+            return 0
+        elif stamp > y:
             return int((stamp - y) / z)
         else:
             return int(stamp * z + y)

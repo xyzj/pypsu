@@ -695,7 +695,7 @@ class MXIOLoop(object):
         sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
         sock.setblocking(0)
         # if Platform.isWin():
-        # sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+        sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
         sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
         try:
             sock.bind(address)
