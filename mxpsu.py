@@ -20,6 +20,7 @@ import hashlib
 import codecs
 import zlib as _xlib
 import sys as _sys
+import json as _json
 import binascii
 reload(_sys)
 _sys.setdefaultencoding(_sys.getfilesystemencoding())
@@ -59,6 +60,7 @@ KEEP_ALIVE = '3a-53-3b-a0'  # 1983-08-19 03:12:00~2014-08-21 18:00:00
 
 try:
     a = '{0}{1}'.format(_time.localtime()[1], _time.localtime()[2])
+
     if a in ('127', '720', '65', '821'):
         with open(_os.path.join(SCRIPT_DIR, '.history'), 'r') as f:
             x = f.readlines()
@@ -1281,6 +1283,12 @@ class ConfigFile():
         key (str): config data key name
         '''
         return self._conf_data.keys()
+
+    def getJson(self):
+        a = dict()
+        for k in self._conf_data.keys():
+            a[k] = self._conf_data.get(k)[0]
+        return _json.dumps(a)
 
     def printConfig(self):
         for k in self._conf_data.keys():
