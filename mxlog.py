@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import traceback
 import threading
 import codecs
-import shutil
+# import shutil
 
 CRITICAL = 50
 FATAL = CRITICAL
@@ -17,11 +17,17 @@ INFO = 20
 DEBUG = 10
 NOTSET = 0
 
-LOGLEVEL = {0: 'NOTSET', 10: 'DEBUG', 20: 'INFO', 30: 'WARN', 40: 'ERROR', 50: 'FATAL'}
+LOGLEVEL = {
+    0: 'NOTSET',
+    10: 'DEBUG',
+    20: 'INFO',
+    30: 'WARN',
+    40: 'ERROR',
+    50: 'FATAL'
+}
 
 
 class Logger():
-
     def __init__(self,
                  file_name=None,
                  log_level=10,
@@ -112,13 +118,15 @@ class Logger():
         if roll_midnight:
             today = datetime.today()
             yesterday = today + timedelta(days=-1)
-            new_name = "{0}.{1:}".format(self.log_filename, yesterday.strftime("%Y-%m-%d"))
+            new_name = "{0}.{1:}".format(self.log_filename,
+                                         yesterday.strftime("%Y-%m-%d"))
             old_name = "{0}".format(self.log_filename)
             if os.path.exists(new_name):
                 h = today.time().hour
                 m = today.time().minute
                 s = today.time().second
-                os.rename(new_name, '{0}.{1}'.format(new_name, h * 60 * 60 + m * 60 + s))
+                os.rename(new_name, '{0}.{1}'.format(new_name,
+                                                     h * 60 * 60 + m * 60 + s))
             os.rename(old_name, new_name)
             p = os.path.dirname(self.log_filename)
             f = os.path.basename(self.log_filename) + '.'
@@ -173,7 +181,8 @@ class Logger():
         self.log_fd = codecs.open(self.log_filename, "a", encoding='utf-8')
         self.file_size = 0
 
-    def log(self, level, console_color, html_color, fmt):  # , *args, **kwargs):
+    def log(self, level, console_color, html_color,
+            fmt):  # , *args, **kwargs):
         string = self.formatLog(fmt, level)  # , *args, **kwargs)
         if not os.path.isfile(self.log_filename):
             try:
@@ -219,8 +228,8 @@ class Logger():
             #         del self.buffer[self.last_no - self.buffer_size]
         except Exception as e:
             string = '%s - [%s]LOG_EXCEPT: %s, Except:%s<br> %s' % (
-                datetime.now().strftime("%m-%d %H:%M:%S.%f")[:14], level, fmt, e,
-                traceback.format_exc())
+                datetime.now().strftime("%m-%d %H:%M:%S.%f")[:14], level, fmt,
+                e, traceback.format_exc())
             print(string)
             # self.last_no += 1
             # self.buffer[self.last_no] = string
@@ -282,7 +291,8 @@ class Logger():
     def critical(self, fmt):  # , *args, **kwargs):
         if self.min_level > CRITICAL:
             return
-        self.log('CRITICAL', self.err_color, 'D7DF01')  # , fmt, *args, **kwargs)
+        self.log('CRITICAL', self.err_color,
+                 'D7DF01')  # , fmt, *args, **kwargs)
 
     # =================================================================
     # def setBufferSize(self, set_size):
@@ -296,7 +306,7 @@ class Logger():
     #             except:
     #                 pass
     #     self.buffer_lock.release()
-    # 
+    #
     # def getLastLines(self, max_lines):
     #     self.buffer_lock.acquire()
     #     buffer_len = len(self.buffer)
@@ -304,27 +314,27 @@ class Logger():
     #         first_no = self.last_no - max_lines
     #     else:
     #         first_no = self.last_no - buffer_len + 1
-    # 
+    #
     #     jd = {}
     #     if buffer_len > 0:
     #         for i in range(first_no, self.last_no + 1):
     #             jd[i] = self.unicodeLine(self.buffer[i])
     #     self.buffer_lock.release()
     #     return json.dumps(jd)
-    # 
+    #
     # def getNewLines(self, from_no):
     #     self.buffer_lock.acquire()
     #     jd = {}
     #     first_no = self.last_no - len(self.buffer) + 1
     #     if from_no < first_no:
     #         from_no = first_no
-    # 
+    #
     #     if self.last_no >= from_no:
     #         for i in range(from_no, self.last_no + 1):
     #             jd[i] = self.unicodeLine(self.buffer[i])
     #     self.buffer_lock.release()
     #     return json.dumps(jd)
-    # 
+    #
     # def unicodeLine(self, line):
     #     try:
     #         # if type(line) is types.UnicodeType:
@@ -369,8 +379,8 @@ def getLogger(name=None,
     if name in LOGGER_DICT:
         return LOGGER_DICT[name]
     else:
-        logger_instance = Logger(file_name, log_level, file_size, roll_num, roll_midnight,
-                                 console_level)
+        logger_instance = Logger(file_name, log_level, file_size, roll_num,
+                                 roll_midnight, console_level)
         LOGGER_DICT[name] = logger_instance
         return logger_instance
 

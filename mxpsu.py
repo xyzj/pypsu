@@ -218,8 +218,8 @@ class GpsDistance():
             TYPE: Description
         """
         return 6370996.81 * _math.acos(
-            _math.sin(c) * _math.sin(d) + _math.cos(c) * _math.cos(d) *
-            _math.cos(b - a))
+            _math.sin(c) * _math.sin(d) +
+            _math.cos(c) * _math.cos(d) * _math.cos(b - a))
 
     def Wv(self, a, b):
         """Summary
@@ -724,8 +724,8 @@ def string2lst(str_in):
 
 
 def lst2string(lst_in):
-    return ''.join(["{0:02x}".format(int(a, 16))
-                    for a in lst_in]).decode('hex')
+    return ''.join(
+        ["{0:02x}".format(int(a, 16)) for a in lst_in]).decode('hex')
 
 
 def hex2lst(hex_in, splitchar="-"):
@@ -1451,6 +1451,14 @@ def bin_hex(binfile, hexfile):
     fhex.write(':00000001FF')
     fbin.close()
     fhex.close()
+
+
+def float2hex(value):
+    return _struct.pack("<f", value).encode('hex')
+
+
+def hex2float(value):
+    return _struct.unpark("!f", value.decode("hex"))[0]
 
 
 def showOurHistory():
