@@ -17,7 +17,7 @@ import base64 as _base64
 from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hex2string
 import gc as _gc
 import os as _os
-import gevent as _gevent
+# import gevent as _gevent
 # reload(_select)
 
 IS_EXIT = 0
@@ -953,8 +953,8 @@ class MXIOLoop(object):
         global IMPL
         # file descriptor事件监听
         while not IS_EXIT:
-            _gevent.sleep(0)
-            # _time.sleep(0)
+            # _gevent.sleep(0)
+            _time.sleep(0)
 
             try:
                 # 获取事件
@@ -966,9 +966,9 @@ class MXIOLoop(object):
 
             if len(poll_list) > 0:
                 for fileno, event in poll_list:
-                    # self.epollMainLoop(fileno, event, debug=self.debug)
-                    _gevent.spawn(
-                        self.epollMainLoop, fileno, event, debug=self.debug)
+                    self.epollMainLoop(fileno, event, debug=self.debug)
+                    # _gevent.spawn(
+                    #     self.epollMainLoop, fileno, event, debug=self.debug)
                 # _gevent.joinall([
                 #     _gevent.spawn(
                 #         self.epollMainLoop, fileno, event, debug=self.debug)
@@ -981,8 +981,8 @@ class MXIOLoop(object):
         global READ, WRITE, IMPL
         while not IS_EXIT:
             if not self.hp:
-                _gevent.sleep(0.001)
-                # _time.sleep(0.001)
+                # _gevent.sleep(0.001)
+                _time.sleep(0.001)
 
             read_list = list(READ)
             write_list = list(WRITE)
@@ -1020,14 +1020,14 @@ class MXIOLoop(object):
 
                 if len(inbuf) > 0:
                     for soc in inbuf:
-                        _gevent.spawn(
-                            self.selectMainLoop, soc, 'in', debug=self.debug)
-                        # self.selectMainLoop(soc, 'in', debug=self.debug)
+                        # _gevent.spawn(
+                        #     self.selectMainLoop, soc, 'in', debug=self.debug)
+                        self.selectMainLoop(soc, 'in', debug=self.debug)
                 if len(outbuf) > 0:
                     for soc in outbuf:
-                        _gevent.spawn(
-                            self.selectMainLoop, soc, 'out', debug=self.debug)
-                        # self.selectMainLoop(soc, 'out', debug=self.debug)
+                        # _gevent.spawn(
+                        #     self.selectMainLoop, soc, 'out', debug=self.debug)
+                        self.selectMainLoop(soc, 'out', debug=self.debug)
 
                 del inbuf, outbuf, errbuf
             del read_list, write_list, wr, ww
