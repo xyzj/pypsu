@@ -1458,7 +1458,7 @@ def float2hex(value):
 
 
 def hex2float(value):
-    return _struct.unpark("!f", value.decode("hex"))[0]
+    return _struct.unpack("!f", value.decode("hex"))[0]
 
 
 def showOurHistory():
