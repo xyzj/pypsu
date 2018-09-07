@@ -42,6 +42,11 @@ extensions = [
               include_dirs=[],
               libraries=[],
               library_dirs=[]),
+    Extension("worddata",
+              ["worddata.pyx"],
+              include_dirs=[],
+              libraries=[],
+              library_dirs=[]),
 ]
 
 setup(name='mxpsu', ext_modules=cythonize(extensions), )

@@ -5,6 +5,7 @@ copy /Y mxpsu.py mxpsu.pyx
 copy /Y mxlog.py mxlog.pyx
 copy /Y mxpbjson.py mxpbjson.pyx
 copy /Y mxsql.py mxsql.pyx
+copy /Y worddata.py worddata.pyx
 
 python setup_nt.py build_ext -fi
 copy /Y mx*.pyd c:\Python27\Lib\site-packages\
