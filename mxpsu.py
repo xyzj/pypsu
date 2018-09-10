@@ -94,20 +94,24 @@ class PinYin(object):
         self.word_dict = word_data
 
     def hanzi2pinyin_list(self, string="", firstcode=False):
+        string = string.replace(" ", "").replace("\r", "").replace("\n", "")
         result = []
         if not isinstance(string, unicode):
             string = string.decode("utf-8")
 
         for char in string:
-            key = '%X' % ord(char)
-            value = self.word_dict.get(key, char)
-            outpinyin = str(value).split()[0][:-1].lower()
-            if not outpinyin:
-                outpinyin = char
-            if firstcode:
-                result.append(outpinyin[0])
-            else:
-                result.append(outpinyin)
+            try:
+                key = '%X' % ord(char)
+                value = self.word_dict.get(key, char)
+                outpinyin = str(value).split()[0][:-1].lower()
+                if not outpinyin:
+                    outpinyin = char
+                if firstcode:
+                    result.append(outpinyin[0])
+                else:
+                    result.append(outpinyin)
+            except:
+                pass
 
         return result
 

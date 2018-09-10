@@ -9,5 +9,7 @@ copy /Y worddata.py worddata.pyx
 
 python setup_nt.py build_ext -fi
 copy /Y mx*.pyd c:\Python27\Lib\site-packages\
+copy /Y worddata.pyd c:\Python27\Lib\site-packages\
 copy /Y mx*.pyd ..\mwsc\dist\bin\
+copy /Y worddata.pyd ..\mwsc\dist\bin\
 :: del /Q ..\mwsc\dist\bin\mxsp_nt.pyd
