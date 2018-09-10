@@ -118,7 +118,14 @@ class PinYin(object):
         @param firstcode: 提取的是全拼还是首字母？如果为true表示提取首字母，默认为False提取全拼
         """
         result = self.hanzi2pinyin_list(string=string, firstcode=firstcode)
-        return split.join(result)
+        a = []
+        for b in result:
+            try:
+                unicode(b)
+                a.append(str(b))
+            except:
+                pass
+        return split.join(a)
 
 
 class GpsPoint():
