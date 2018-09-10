@@ -22,7 +22,11 @@ import zlib as _xlib
 import sys as _sys
 import json as _json
 import binascii
-from worddata import word_data
+try:
+    from worddata import word_data
+except:
+    word_data = {}
+
 reload(_sys)
 _sys.setdefaultencoding(_sys.getfilesystemencoding())
 
@@ -91,7 +95,8 @@ def int2bcd(value):
 
 class PinYin(object):
     def __init__(self):
-        self.word_dict = word_data
+        pass
+        # self.word_dict = word_data
 
     def hanzi2pinyin_list(self, string="", firstcode=False):
         string = string.replace(" ", "").replace("\r", "").replace("\n", "")
@@ -102,7 +107,7 @@ class PinYin(object):
         for char in string:
             try:
                 key = '%X' % ord(char)
-                value = self.word_dict.get(key, char)
+                value = word_data.get(key, char)
                 outpinyin = str(value).split()[0][:-1].lower()
                 if not outpinyin:
                     outpinyin = char
