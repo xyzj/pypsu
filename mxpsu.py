@@ -1351,6 +1351,7 @@ def decode_string(str_in):
     return:
         decode string
     '''
+    str = str_in
     try:
         str_in += '=' * (4 - len(str_in) % 4)
         y = _base64.b64decode(str_in.swapcase())
@@ -1360,7 +1361,21 @@ def decode_string(str_in):
             [chr(ord(a) - x if ord(a) >= x else ord(a) + 256 - x) for a in z])
         return _xlib.decompress('x\x9c' + z[::-1])[::-1]
     except Exception as ex:
-        return 'You screwed up.' + str(ex)
+        try:
+            decode_string_new(str)
+        except:
+            return 'You screwed up.' + str(ex)
+
+
+def decode_string_new(str_in):
+    str_in = str_in[::-1].swapcase() + '=' * (4 - len(str_in) % 4)
+    z = _base64.b64decode(str_in)
+    x = ord(z[0])
+    s = ""
+    for i in range(len(z)):
+        if i % 2 != 0:
+            s += chr(ord(z[i]) - x)
+    return s
 
 
 def code_pb2(pb2obj, fmt=0):
@@ -1508,6 +1523,13 @@ def float2hex(value):
 
 def hex2float(value):
     return _struct.unpack("!f", value.decode("hex"))[0]
+
+
+def get_random_string(l):
+    return "".join(
+        _random.sample(
+            "!#$%&()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}",
+            l))
 
 
 def showOurHistory():
