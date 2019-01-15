@@ -63,9 +63,9 @@ def _destroy_license(strlic, licpath='LICENSE'):
                                        strlic[l:len(strlic) - 2], str(l),
                                        len(str(l)), strlic[len(strlic) - 2:])
     l = len(slic)
-    llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
+    llic = ["–––––––BEGIN LICENSE–––––––"]
     llic.extend([slic[i:i + 27] for i in range(0, l, 27)])
-    llic.append("–" * 8 + "END LICENSE" + "–" * 8)
+    llic.append("––––––––END LICENSE––––––––")
     with open(licpath, 'w') as f:
         f.writelines([c + "\n" for c in llic])
     return None
@@ -470,14 +470,15 @@ class ClientSession(object):
         """
         global SEND_QUEUE
         # 检查超时
-        if now - self.last_recv_time > timeout:  # and SEND_QUEUE[self.fileno].empty():
+        # and SEND_QUEUE[self.fileno].empty():
+        if now - self.last_recv_time > timeout:
             self.disconnect('timeout')
             return 1  # timeout
 
         # 发送心跳
         if self.ka is not None and now - self.last_send_time > 70 and SEND_QUEUE[self.
                                                                                  fileno].empty(
-                                                                                 ):
+        ):
             SEND_QUEUE[self.fileno].put_nowait(self.ka)
             # modify(self.fileno, READ_WRITE)
         return 0  # still function
@@ -777,7 +778,8 @@ class MXIOLoop(object):
         # 许可证检查
         if t - self.last_lic > 86400:
             self.last_lic = t
-            self.lic_expire = not __license_ok()
+            # self.lic_expire = not __license_ok()
+            self.lic_expire = False
 
     def connect(self, server_object):
         """

@@ -9,8 +9,8 @@ extensions = [
     Extension(
         "mxpsu", ["mxpsu.pyx"], include_dirs=[], libraries=[],
         library_dirs=[]),
-    Extension(
-        "lic", ["lic.pyx"], include_dirs=[], libraries=[], library_dirs=[]),
+    # Extension(
+    #     "lic", ["lic.pyx"], include_dirs=[], libraries=[], library_dirs=[]),
     # Extension("mxhpss_comm",
     #           ["mxhpss_comm.pyx"],
     #           include_dirs=[],
