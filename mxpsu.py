@@ -1367,6 +1367,28 @@ def decode_string(str_in):
             return 'You screwed up.' + str(ex)
 
 
+def code_string_new(str_in):
+    x = _random.randint(1, 127)
+    y = ''.join([chr(ord(a) + x) for a in str_in])
+    l = len(str_in)
+    salt = chr(x) + "".join(
+        _random.sample(
+            "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}"*(
+                l/91+1),
+            l))
+    zz = [""] * (l * 2 + 1)
+    c1 = 0
+    c2 = 0
+    for i in range(0, 2 * l + 1):
+        if i % 2 == 0:
+            zz[i] = salt[c1]
+            c1 += 1
+        else:
+            zz[i] = y[c2]
+            c2 += 1
+    return _base64.b64encode(''.join(zz))[::-1].swapcase().replace('=', '')
+
+
 def decode_string_new(str_in):
     str_in = str_in[::-1].swapcase() + '=' * (4 - len(str_in) % 4)
     z = _base64.b64decode(str_in)

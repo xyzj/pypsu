@@ -84,9 +84,9 @@ def __destroy_license(strlic, licpath='LICENSE'):
                                        str(l),
                                        len(str(l)), strlic[len(strlic) - 2:])
     l = len(slic)
-    llic = ["–" * 7 + "BEGIN LICENSE" + "–" * 7]
+    llic = ["–––––––BEGIN LICENSE–––––––"]
     llic.extend([slic[i:i + 27] for i in range(0, l, 27)])
-    llic.append("–" * 8 + "END LICENSE" + "–" * 8)
+    llic.append("––––––––END LICENSE––––––––")
     with open(licpath, 'w') as f:
         f.writelines([c + "\n" for c in llic])
     return None
@@ -152,7 +152,9 @@ def __generate_license(deadline_year, max_client=2100, strKey=""):
     }
     lic = _json.dumps(zlic, separators=(',', ':'))
     # lic = str(zlic).replace("'", "")
+    print(lic)
     slic = __encrypt_string(lic, strKey).swapcase()
+    print(slic)
     l = len(slic)
     sl = slic[l - 3::-1] + slic[l - 2:]
     slic = _base64.b64encode(_xlib.compress(sl, 9)).swapcase()

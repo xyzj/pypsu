@@ -14,9 +14,10 @@ import select as _select
 import zlib as _xlib
 import bz2 as _bz2
 import base64 as _base64
-from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform, hex2string
+from mxpsu import PriorityQueue, SCRIPT_DIR, stamp2time, ip2int, Platform
 import gc as _gc
 import os as _os
+import binascii
 # import gevent as _gevent
 # reload(_select)
 
@@ -264,6 +265,7 @@ def __license_ok():
     Returns:
         int: 0-许可证无效，1-许可证有效
     """
+    return 1
     if Platform.isLinux():
         fname = '.LICENSE'
     else:
@@ -300,7 +302,7 @@ class ClientSession(object):
         self.clientid = -1
         self.attributes = set()
         self.name = ''
-        self.ka = hex2string('3a-53-3b-a0')
+        self.ka = binascii.unhexlify('3a-53-3b-a0'.replace("-", ''))
         self.recognition = -1  # 1-tml,2-data,3-client,4-sdcmp,5-fwdcs,6-upgrade
         self.wait4send = None
         self.guardtime = 0
@@ -353,7 +355,7 @@ class ClientSession(object):
         """
         global SEND_QUEUE, CLIENTS
         for k in CLIENTS.keys():
-            SEND_QUEUE[k].put_now(recbuff)
+            SEND_QUEUE[k].put_nowait(recbuff)
 
     def setDebug(self, showdebug=0):
         """Summary
